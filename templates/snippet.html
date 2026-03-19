@@ -19,7 +19,11 @@
 {% if snippet.status == 'pending' %}
 <div class="alert alert-info">
     <strong>ℹ️ Ожидает модерации</strong><br>
+    {% if snippet.moderated_at %}
+    Сниппет был обновлён и ожидает повторной проверки модератором. До одобрения он скрыт для других пользователей.
+    {% else %}
     Этот сниппет ожидает проверки модератором.
+    {% endif %}
 </div>
 {% elif snippet.status == 'rejected' %}
     {% if snippet.author_id == current_user.id %}

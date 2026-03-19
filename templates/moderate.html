@@ -25,9 +25,12 @@
 <h1 class="mb-4">Модерация контента</h1>
 
 <!-- Новые сниппеты на модерации -->
-{% if pending_snippets %}
-<h3 class="mb-3">Новые сниппеты ({{ pending_snippets|length }})</h3>
-{% for snippet in pending_snippets %}
+{% set new_snippets = pending_snippets | selectattr('is_edited', 'equalto', False) | list %}
+{% set edited_snippets = pending_snippets | selectattr('is_edited', 'equalto', True) | list %}
+
+{% if new_snippets %}
+<h3 class="mb-3">Новые сниппеты ({{ new_snippets|length }})</h3>
+{% for snippet in new_snippets %}
 <div class="card mb-4">
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-start mb-2">
@@ -112,6 +115,61 @@
         {% endif %}
         {% endif %}
         
+        <form method="post" action="{{ url_for('moderate') }}" class="mt-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action_type" value="snippet">
+            <input type="hidden" name="item_id" value="{{ snippet.id }}">
+            <div class="mb-2">
+                <input type="text" name="rejection_reason" class="form-control form-control-sm" placeholder="Причина отклонения (если отклоняете)" style="max-width: 400px;">
+            </div>
+            <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Одобрить</button>
+            <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">Отклонить</button>
+        </form>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Отредактированные сниппеты на повторной модерации -->
+{% if edited_snippets %}
+<h3 class="mb-3" style="color: #f0ad4e;">✏️ Отредактированные сниппеты ({{ edited_snippets|length }})</h3>
+{% for snippet in edited_snippets %}
+<div class="card mb-4" style="border-color: #f0ad4e;">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <h5>{{ snippet.title }} <span class="badge" style="background-color: #f0ad4e; color: #000;">Повторная проверка</span></h5>
+            <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('preview_snippet_files', snippet_id=snippet.id) }}" class="btn btn-outline-info" title="Предпросмотр">👁️</a>
+                {% if snippet.files %}
+                <a href="{{ url_for('download_all_public_files', snippet_id=snippet.id) }}" class="btn btn-outline-primary" title="Скачать все файлы">📦</a>
+                {% endif %}
+            </div>
+        </div>
+        <p class="text-secondary small">автор: {{ snippet.author.username }} &middot; {{ snippet.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+        <p class="small">{{ snippet.description[:300] }}{% if snippet.description|length > 300 %}...{% endif %}</p>
+
+        {% if snippet.resubmit_comment %}
+        <div class="mb-3 p-2 rounded" style="border-left: 3px solid #f0ad4e; background-color: rgba(240,173,78,0.1);">
+            <strong style="color: #f0ad4e;">💬 Комментарий автора к изменениям:</strong>
+            <p class="mb-0 mt-1" style="white-space: pre-wrap;">{{ snippet.resubmit_comment }}</p>
+        </div>
+        {% endif %}
+
+        {% if snippet.files %}
+        <div class="mb-2">
+            <small class="text-info">📁 {{ snippet.files|length }} файл(ов):
+            {% for file in snippet.files[:3] %}{{ file.filename }}{% if not loop.last %}, {% endif %}{% endfor %}
+            {% if snippet.files|length > 3 %}...{% endif %}
+            </small>
+        </div>
+        {% elif snippet.code %}
+        <pre class="bg-dark p-2 rounded small" style="max-height: 200px; overflow: auto;"><code>{{ snippet.code|e }}</code></pre>
+        {% endif %}
+
+        <div class="mb-2">
+            <span class="badge bg-secondary">{{ snippet.category.name }}</span>
+            {% for tag in snippet.tags %}<span class="badge bg-dark">{{ tag.name }}</span>{% endfor %}
+        </div>
         <form method="post" action="{{ url_for('moderate') }}" class="mt-2">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="action_type" value="snippet">

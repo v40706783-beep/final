@@ -157,7 +157,7 @@
                 {% if snippet.status == 'rejected' %}
                 Отправить на повторную модерацию
                 {% else %}
-                Сохранить изменения
+                Сохранить и отправить на модерацию
                 {% endif %}
             </button>
             <a href="{{ url_for('snippet', id=snippet.id) }}" class="btn btn-outline-danger">Отмена</a>

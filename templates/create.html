@@ -633,6 +633,7 @@ function updateFilesData() {
 // Обновление предпросмотра файла
 function updateFilePreview(fileId) {
     const content = document.getElementById(`content-${fileId}`)?.value || '';
+    const language = document.getElementById(`language-${fileId}`)?.value || '';
     const target = document.getElementById(`file-preview-content-${fileId}`);
     
     if (!content.trim()) {
@@ -640,7 +641,11 @@ function updateFilePreview(fileId) {
         return;
     }
     
-    target.innerHTML = '<pre><code>' + escapeHtml(content) + '</code></pre>';
+    const langClass = language ? ` class="${language}"` : '';
+    target.innerHTML = `<pre><code${langClass}>${escapeHtml(content)}</code></pre>`;
+    
+    const codeEl = target.querySelector('code');
+    if (codeEl && window.hljs) hljs.highlightElement(codeEl);
 }
 
 // Обновление общего предпросмотра всех файлов и ссылок

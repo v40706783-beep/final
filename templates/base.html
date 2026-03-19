@@ -214,6 +214,7 @@
             color: #000;
         }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     {% block extra_css %}{% endblock %}
 </head>
 <body class="d-flex flex-column min-vh-100">
@@ -311,6 +312,14 @@
             if (localStorage.getItem('warningClosed') === 'true') {
                 document.getElementById('educational-warning').style.display = 'none';
             }
+        });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('pre code').forEach(el => {
+                hljs.highlightElement(el);
+            });
         });
     </script>
     {% block extra_js %}{% endblock %}

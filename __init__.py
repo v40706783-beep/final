@@ -81,6 +81,7 @@ class CodeSnippet(db.Model):
     report_moderated_at = db.Column(db.DateTime)
     report_moderation_reason = db.Column(db.Text)
     resubmit_comment = db.Column(db.Text)  # Комментарий пользователя при повторной отправке
+    is_edited = db.Column(db.Boolean, default=False)  # True если сниппет был отредактирован после публикации
 
     tags = db.relationship('Tag', secondary=snippet_tags, lazy='subquery',
                            backref=db.backref('snippets', lazy=True))
@@ -569,14 +570,13 @@ def edit_snippet(id):
         return redirect(url_for('index'))
 
     if request.method == 'POST':
-        snippet.title = request.form.get('title', '').strip()
-        snippet.description = request.form.get('description', '').strip()
-        snippet.code = request.form.get('code', '').strip()
+        new_title = request.form.get('title', '').strip()
+        new_description = request.form.get('description', '').strip()
+        new_code = request.form.get('code', '').strip()
         category_id = request.form.get('category_id', type=int)
         tag_names = [t.strip() for t in request.form.get('tags', '').split(',') if t.strip()][:10]
-        resubmit_comment = request.form.get('resubmit_comment', '').strip()  # Комментарий для повторной модерации
+        resubmit_comment = request.form.get('resubmit_comment', '').strip()
         
-        # Получаем данные о файлах и ссылках из JSON
         import json
         files_data = request.form.get('files_data', '[]')
         links_data = request.form.get('links_data', '[]')
@@ -587,12 +587,11 @@ def edit_snippet(id):
             files_list = []
             links_list = []
 
-        if not snippet.title:
+        if not new_title:
             flash('Название обязательно.', 'danger')
             return render_template('edit_snippet.html', snippet=snippet, categories=categories)
 
-        # Проверяем, есть ли хотя бы один файл, код или ссылка
-        if not snippet.code and not files_list and not links_list:
+        if not new_code and not files_list and not links_list:
             flash('Добавьте хотя бы один файл с кодом или ссылку на проект.', 'danger')
             return render_template('edit_snippet.html', snippet=snippet, categories=categories)
 
@@ -600,6 +599,46 @@ def edit_snippet(id):
             flash('Максимум 20 файлов. Для больших проектов используйте ссылку на GitHub/GitLab.', 'danger')
             return render_template('edit_snippet.html', snippet=snippet, categories=categories)
 
+        # Проверяем, изменилось ли что-то
+        old_tag_names = sorted([t.name for t in snippet.tags])
+        new_tag_names = sorted(tag_names)
+
+        old_files = sorted(
+            [{'filename': f.filename, 'content': f.content, 'language': f.language or ''} for f in snippet.files],
+            key=lambda x: x['filename']
+        )
+        new_files = sorted(
+            [{'filename': f.get('filename',''), 'content': f.get('content',''), 'language': f.get('language','')} for f in files_list if f.get('filename') and f.get('content')],
+            key=lambda x: x['filename']
+        )
+
+        old_links = sorted(
+            [{'title': l.title, 'url': l.url} for l in snippet.links],
+            key=lambda x: x['url']
+        )
+        new_links = sorted(
+            [{'title': l.get('title',''), 'url': l.get('url','')} for l in links_list if l.get('title') and l.get('url')],
+            key=lambda x: x['url']
+        )
+
+        nothing_changed = (
+            new_title == snippet.title and
+            new_description == (snippet.description or '') and
+            new_code == (snippet.code or '') and
+            (category_id == snippet.category_id or not category_id) and
+            old_tag_names == new_tag_names and
+            old_files == new_files and
+            old_links == new_links
+        )
+
+        if nothing_changed:
+            flash('Вы не внесли никаких изменений.', 'warning')
+            return render_template('edit_snippet.html', snippet=snippet, categories=categories)
+
+        # Применяем изменения
+        snippet.title = new_title
+        snippet.description = new_description
+        snippet.code = new_code
         if category_id:
             snippet.category_id = category_id
 
@@ -652,15 +691,18 @@ def edit_snippet(id):
                     )
                     db.session.add(snippet_link)
 
-            # Если сниппет был отклонен и есть комментарий, отправляем на повторную модерацию
+            # После редактирования всегда отправляем на модерацию
             if snippet.status == 'rejected' and resubmit_comment:
-                snippet.status = 'pending'
                 snippet.resubmit_comment = resubmit_comment
-                snippet.moderated_by = None
-                snippet.moderated_at = None
-                flash('Сниппет отправлен на повторную модерацию.', 'success')
-            else:
-                flash('Сниппет обновлён.', 'success')
+            elif snippet.status == 'approved':
+                snippet.resubmit_comment = None
+
+            was_approved = snippet.status == 'approved'
+            snippet.is_edited = was_approved  # помечаем как отредактированный только если был опубликован
+            snippet.status = 'pending'
+            snippet.moderated_by = None
+            snippet.moderated_at = None
+            flash('Сниппет обновлён и отправлен на модерацию.', 'success')
 
             db.session.commit()
             return redirect(url_for('snippet', id=id))
@@ -1060,6 +1102,7 @@ def moderate():
                     snippet.status = 'rejected'
                     snippet.rejection_reason = reason or 'No reason provided.'
                 snippet.resubmit_comment = None
+                snippet.is_edited = False
                 snippet.moderated_by = current_user.id
                 snippet.moderated_at = datetime.utcnow()
                 db.session.commit()
