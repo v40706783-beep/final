@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}CodeHub - Hot Snippets{% endblock %}
+
+{% block main %}
+<h1 class="mb-4">Популярные сниппеты (за 7 дней)</h1>
+
+{% for snippet in snippets %}
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">
+            <a href="{{ url_for('snippet', id=snippet.id) }}" class="text-decoration-none text-white">{{ snippet.title }}</a>
+        </h5>
+        <p class="card-text text-secondary small">{{ snippet.description[:200] }}{% if snippet.description|length > 200 %}...{% endif %}</p>
+        <div class="d-flex flex-wrap gap-2 align-items-center small">
+            <span class="badge bg-secondary">{{ snippet.category.name }}</span>
+            {% for tag in snippet.tags[:5] %}
+            <a href="{{ url_for('by_tag', name=tag.name) }}" class="badge bg-dark text-info">{{ tag.name }}</a>
+            {% endfor %}
+            <span class="text-warning">&uarr; {{ snippet.likes_count }}</span>
+            <span class="text-secondary ms-auto">
+                автор: <a href="{{ url_for('profile', username=snippet.author.username) }}" class="text-info">{{ snippet.author.username }}</a>
+                &middot; {{ snippet.created_at.strftime('%Y-%m-%d') }}
+            </span>
+        </div>
+    </div>
+</div>
+{% else %}
+<p class="text-secondary">За последние 7 дней популярных сниппетов нет.</p>
+{% endfor %}
+{% endblock %}

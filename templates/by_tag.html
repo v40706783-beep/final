@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Tag: {{ tag.name }} - CodeHub{% endblock %}
+
+{% block main %}
+<h1 class="mb-4">Сниппеты с тегом: <span class="badge bg-info">{{ tag.name }}</span></h1>
+
+{% for snippet in snippets.items %}
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">
+            <a href="{{ url_for('snippet', id=snippet.id) }}" class="text-decoration-none text-white">{{ snippet.title }}</a>
+        </h5>
+        <p class="card-text text-secondary small">{{ snippet.description[:200] }}{% if snippet.description|length > 200 %}...{% endif %}</p>
+        <div class="d-flex flex-wrap gap-2 align-items-center small">
+            <span class="badge bg-secondary">{{ snippet.category.name }}</span>
+            {% for t in snippet.tags %}
+            <a href="{{ url_for('by_tag', name=t.name) }}" class="badge bg-dark text-info">{{ t.name }}</a>
+            {% endfor %}
+            <span class="text-secondary ms-auto">
+                автор: <a href="{{ url_for('profile', username=snippet.author.username) }}" class="text-info">{{ snippet.author.username }}</a>
+                &middot; {{ snippet.created_at.strftime('%Y-%m-%d') }}
+            </span>
+            <span class="text-secondary">&uarr; {{ snippet.likes_count }} &middot; {{ snippet.views_count }} просмотров</span>
+        </div>
+    </div>
+</div>
+{% else %}
+<p class="text-secondary">Сниппетов с этим тегом нет.</p>
+{% endfor %}
+
+{% if snippets.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if snippets.has_prev %}
+        <li class="page-item">
+            <a class="page-link bg-dark border-secondary text-white" href="{{ url_for('by_tag', name=tag.name, page=snippets.prev_num) }}">Назад</a>
+        </li>
+        {% endif %}
+        {% for p in snippets.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+            <li class="page-item {% if p == snippets.page %}active{% endif %}">
+                <a class="page-link bg-dark border-secondary text-white" href="{{ url_for('by_tag', name=tag.name, page=p) }}">{{ p }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+        {% if snippets.has_next %}
+        <li class="page-item">
+            <a class="page-link bg-dark border-secondary text-white" href="{{ url_for('by_tag', name=tag.name, page=snippets.next_num) }}">Вперёд</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

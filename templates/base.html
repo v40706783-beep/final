@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="CodeHub - Share educational code snippets">
+    <title>{% block title %}CodeHub{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #1a1a1a;
+            --bg-card: #2d2d2d;
+            --text-primary: #FFD580;
+            --text-secondary: #9C9C9C;
+            --accent: #4DBCED;
+            --accent-hover: #3a9bc4;
+            --heading: #BAE67E;
+            --tag: #4DBCED;
+            --warning: #EF6B73;
+            --success: #08D220;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--heading);
+        }
+        .navbar {
+            background-color: #1a1a1a !important;
+            border-bottom: 1px solid #3a3a3a;
+        }
+        .navbar-brand, .nav-link {
+            color: var(--text-primary) !important;
+        }
+        .nav-link:hover {
+            color: var(--accent) !important;
+        }
+        .btn-primary {
+            background-color: var(--accent);
+            border-color: var(--accent);
+            color: #000;
+        }
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+        .btn-success {
+            background-color: var(--success);
+            border-color: var(--success);
+            color: #000;
+        }
+        .btn-success:hover {
+            background-color: #06a01a;
+            border-color: #06a01a;
+        }
+        .btn-danger {
+            background-color: var(--warning);
+            border-color: var(--warning);
+            color: #000;
+        }
+        .btn-danger:hover {
+            background-color: #d45a63;
+            border-color: #d45a63;
+        }
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid #3a3a3a;
+            color: var(--text-primary);
+        }
+        .form-control, .form-select {
+            background-color: #2d2d2d;
+            border-color: #3a3a3a;
+            color: var(--text-primary);
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #2d2d2d;
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+        .form-control::placeholder {
+            color: var(--text-secondary);
+        }
+        .alert-warning {
+            background-color: rgba(239, 107, 115, 0.1);
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+        .alert-success {
+            background-color: rgba(8, 210, 32, 0.1);
+            border-color: var(--success);
+            color: var(--success);
+        }
+        .alert-info {
+            background-color: rgba(77, 188, 237, 0.1);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .alert-danger {
+            background-color: rgba(239, 107, 115, 0.1);
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+        .badge {
+            background-color: var(--tag);
+            color: #000;
+        }
+        .badge.bg-secondary {
+            background-color: var(--tag) !important;
+            color: #000 !important;
+        }
+        .badge.bg-dark {
+            background-color: var(--accent) !important;
+            color: #000 !important;
+        }
+        .badge.bg-success {
+            background-color: var(--success) !important;
+            color: #000 !important;
+        }
+        .badge.bg-warning {
+            background-color: var(--warning) !important;
+            color: #000 !important;
+        }
+        .badge.bg-info {
+            background-color: var(--accent) !important;
+            color: #000 !important;
+        }
+        pre, code {
+            background-color: #2d2d2d;
+            color: var(--text-primary);
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+        }
+        pre {
+            padding: 1rem;
+            overflow-x: auto;
+            max-height: 400px;
+        }
+        .comment-reply {
+            margin-left: 2rem;
+            border-left: 3px solid var(--accent);
+            padding-left: 1rem;
+        }
+        footer {
+            background-color: #1a1a1a;
+            border-top: 1px solid #3a3a3a;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        a:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+        .text-info {
+            color: var(--accent) !important;
+        }
+        .text-success {
+            color: var(--success) !important;
+        }
+        .text-warning {
+            color: var(--warning) !important;
+        }
+        .text-danger {
+            color: var(--warning) !important;
+        }
+        .text-secondary {
+            color: var(--text-secondary) !important;
+        }
+        .text-muted {
+            color: var(--text-secondary) !important;
+        }
+        .btn-outline-success {
+            color: var(--success);
+            border-color: var(--success);
+        }
+        .btn-outline-success:hover {
+            background-color: var(--success);
+            border-color: var(--success);
+            color: #000;
+        }
+        .btn-outline-danger {
+            color: var(--warning);
+            border-color: var(--warning);
+        }
+        .btn-outline-danger:hover {
+            background-color: var(--warning);
+            border-color: var(--warning);
+            color: #000;
+        }
+        .btn-link {
+            color: var(--accent);
+        }
+        .btn-link:hover {
+            color: var(--accent-hover);
+        }
+        .pagination .page-link {
+            background-color: var(--bg-card);
+            border-color: #3a3a3a;
+            color: var(--text-primary);
+        }
+        .pagination .page-link:hover {
+            background-color: var(--accent);
+            border-color: var(--accent);
+            color: #000;
+        }
+        .pagination .page-item.active .page-link {
+            background-color: var(--accent);
+            border-color: var(--accent);
+            color: #000;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark">
+            <div class="container">
+                <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">CodeHub</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('index') }}">Главная</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('hot') }}">Популярное</a>
+                        </li>
+                        {% if current_user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('create_snippet') }}">Создать сниппет</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('my_snippets') }}">Мои сниппеты</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('profile', username=current_user.username) }}">Профиль</a>
+                        </li>
+                        {% if current_user.admin %}
+                        <li class="nav-item">
+                            <a class="nav-link text-warning" href="{{ url_for('moderate') }}">Модерация</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-info" href="{{ url_for('admin_stats') }}">Статистика</a>
+                        </li>
+                        {% endif %}
+                        {% endif %}
+                    </ul>
+                    <ul class="navbar-nav">
+                        {% if current_user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('logout') }}">Выход</a>
+                        </li>
+                        {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">Вход</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('register') }}">Регистрация</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="alert alert-warning rounded-0 mb-0 py-2" role="alert" id="educational-warning">
+        <div class="container d-flex justify-content-between align-items-center">
+            <small><strong>Внимание:</strong> Все примеры кода предназначены только для образовательных целей. Всегда тестируйте в изолированных средах.</small>
+            <button type="button" class="btn-close btn-close-white" aria-label="Закрыть" onclick="closeWarning()"></button>
+        </div>
+    </div>
+
+    <main class="container flex-grow-1 py-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block main %}{% endblock %}
+    </main>
+
+    <footer class="py-3 mt-auto">
+        <div class="container text-center">
+            <small>CodeHub &middot; Платформа для обмена образовательным кодом</small>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function closeWarning() {
+            document.getElementById('educational-warning').style.display = 'none';
+            // Сохраняем состояние в localStorage
+            localStorage.setItem('warningClosed', 'true');
+        }
+        
+        // Проверяем при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            if (localStorage.getItem('warningClosed') === 'true') {
+                document.getElementById('educational-warning').style.display = 'none';
+            }
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

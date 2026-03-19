@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+
+{% block title %}Moderate - CodeHub{% endblock %}
+
+{% block extra_css %}
+<style>
+.files-content {
+    border-left: 3px solid var(--accent);
+    padding-left: 12px;
+    margin-top: 8px;
+}
+
+.files-content pre {
+    font-family: 'Courier New', 'Monaco', monospace;
+    line-height: 1.4;
+}
+
+.files-content .border {
+    border-color: #3a3a3a !important;
+}
+</style>
+{% endblock %}
+
+{% block main %}
+<h1 class="mb-4">Модерация контента</h1>
+
+<!-- Новые сниппеты на модерации -->
+{% if pending_snippets %}
+<h3 class="mb-3">Новые сниппеты ({{ pending_snippets|length }})</h3>
+{% for snippet in pending_snippets %}
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <h5>{{ snippet.title }}</h5>
+            <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('preview_snippet_files', snippet_id=snippet.id) }}" 
+                   class="btn btn-outline-info" title="Предпросмотр">
+                    👁️
+                </a>
+                {% if snippet.files %}
+                <a href="{{ url_for('download_all_public_files', snippet_id=snippet.id) }}" 
+                   class="btn btn-outline-primary" title="Скачать все файлы">
+                    📦
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        <p class="text-secondary small">автор: {{ snippet.author.username }} &middot; {{ snippet.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+        <p class="small">{{ snippet.description[:300] }}{% if snippet.description|length > 300 %}...{% endif %}</p>
+        
+        <!-- Показываем информацию о файлах -->
+        {% if snippet.files %}
+        <div class="mb-2">
+            <small class="text-info">📁 {{ snippet.files|length }} файл(ов): 
+            {% for file in snippet.files[:3] %}
+                {{ file.filename }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+            {% if snippet.files|length > 3 %}...{% endif %}
+            </small>
+            <button type="button" class="btn btn-link btn-sm p-0 ms-2" onclick="toggleFiles('pending-{{ snippet.id }}')">
+                <span id="toggle-pending-{{ snippet.id }}">👁️ Показать файлы</span>
+            </button>
+        </div>
+        
+        <!-- Содержимое файлов (скрыто по умолчанию) -->
+        <div id="files-pending-{{ snippet.id }}" class="files-content" style="display: none;">
+            {% for file in snippet.files %}
+            <div class="mb-3 border rounded p-2" style="background-color: #2d2d2d;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong>📄 {{ file.filename }}</strong>
+                    {% if file.language %}
+                    <span class="badge bg-secondary">{{ file.language }}</span>
+                    {% endif %}
+                </div>
+                <pre style="background-color: #1a1a1a; padding: 8px; border-radius: 4px; font-size: 12px; max-height: 300px; overflow-y: auto;"><code>{{ file.content|e }}</code></pre>
+            </div>
+            {% endfor %}
+        </div>
+        {% elif snippet.code %}
+        {% if snippet.code|length > 1000 %}
+        <div class="mb-2">
+            <button type="button" class="btn btn-link btn-sm p-0" onclick="toggleCode('pending-code-{{ snippet.id }}')">
+                <span id="toggle-pending-code-{{ snippet.id }}">👁️ Показать полный код</span>
+            </button>
+        </div>
+        <pre class="bg-dark p-2 rounded small" style="max-height: 200px; overflow: auto;"><code>{{ snippet.code[:1000]|e }}...</code></pre>
+        <div id="files-pending-code-{{ snippet.id }}" class="files-content" style="display: none;">
+            <pre class="bg-dark p-2 rounded small" style="max-height: 400px; overflow: auto;"><code>{{ snippet.code|e }}</code></pre>
+        </div>
+        {% else %}
+        <pre class="bg-dark p-2 rounded small" style="max-height: 200px; overflow: auto;"><code>{{ snippet.code|e }}</code></pre>
+        {% endif %}
+        {% endif %}
+        
+        <div class="mb-2">
+            <span class="badge bg-secondary">{{ snippet.category.name }}</span>
+            {% for tag in snippet.tags %}
+            <span class="badge bg-dark">{{ tag.name }}</span>
+            {% endfor %}
+        </div>
+        
+        {% if snippet.resubmit_comment %}
+        <div class="mb-3 p-2 rounded" style="border-left: 3px solid #f0ad4e; background-color: rgba(240,173,78,0.1);">
+            <strong style="color: #f0ad4e;">💬 Комментарий автора к исправлениям:</strong>
+            <p class="mb-0 mt-1" style="white-space: pre-wrap;">{{ snippet.resubmit_comment }}</p>
+        </div>
+        {% if snippet.rejection_reason %}
+        <div class="mb-3 p-2 rounded" style="border-left: 3px solid #6c757d; background-color: rgba(108,117,125,0.1);">
+            <strong class="text-secondary">📋 Предыдущая причина отклонения:</strong>
+            <p class="mb-0 mt-1 text-secondary small" style="white-space: pre-wrap;">{{ snippet.rejection_reason }}</p>
+        </div>
+        {% endif %}
+        {% endif %}
+        
+        <form method="post" action="{{ url_for('moderate') }}" class="mt-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action_type" value="snippet">
+            <input type="hidden" name="item_id" value="{{ snippet.id }}">
+            <div class="mb-2">
+                <input type="text" name="rejection_reason" class="form-control form-control-sm" placeholder="Причина отклонения (если отклоняете)" style="max-width: 400px;">
+            </div>
+            <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Одобрить</button>
+            <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">Отклонить</button>
+        </form>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Сниппеты с жалобами -->
+{% if reported_snippets %}
+<h3 class="mb-3 text-warning">Сниппеты с жалобами ({{ reported_snippets|length }})</h3>
+{% for snippet in reported_snippets %}
+<div class="card mb-4 border-warning">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <h5>{{ snippet.title }} <span class="badge bg-warning text-dark">{{ snippet.reports_count }} жалоб</span></h5>
+            <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('preview_snippet_files', snippet_id=snippet.id) }}" 
+                   class="btn btn-outline-info" title="Предпросмотр">
+                    👁️
+                </a>
+                {% if snippet.files %}
+                <a href="{{ url_for('download_all_public_files', snippet_id=snippet.id) }}" 
+                   class="btn btn-outline-primary" title="Скачать все файлы">
+                    📦
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        <p class="text-secondary small">автор: {{ snippet.author.username }} &middot; {{ snippet.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+        <p class="small">{{ snippet.description[:300] }}{% if snippet.description|length > 300 %}...{% endif %}</p>
+        
+        <!-- Показываем информацию о файлах -->
+        {% if snippet.files %}
+        <div class="mb-2">
+            <small class="text-info">📁 {{ snippet.files|length }} файл(ов): 
+            {% for file in snippet.files[:3] %}
+                {{ file.filename }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+            {% if snippet.files|length > 3 %}...{% endif %}
+            </small>
+            <button type="button" class="btn btn-link btn-sm p-0 ms-2" onclick="toggleFiles('reported-{{ snippet.id }}')">
+                <span id="toggle-reported-{{ snippet.id }}">👁️ Показать файлы</span>
+            </button>
+        </div>
+        
+        <!-- Содержимое файлов (скрыто по умолчанию) -->
+        <div id="files-reported-{{ snippet.id }}" class="files-content" style="display: none;">
+            {% for file in snippet.files %}
+            <div class="mb-3 border rounded p-2" style="background-color: #2d2d2d;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong>📄 {{ file.filename }}</strong>
+                    {% if file.language %}
+                    <span class="badge bg-secondary">{{ file.language }}</span>
+                    {% endif %}
+                </div>
+                <pre style="background-color: #1a1a1a; padding: 8px; border-radius: 4px; font-size: 12px; max-height: 300px; overflow-y: auto;"><code>{{ file.content|e }}</code></pre>
+            </div>
+            {% endfor %}
+        </div>
+        {% elif snippet.code %}
+        {% if snippet.code|length > 1000 %}
+        <div class="mb-2">
+            <button type="button" class="btn btn-link btn-sm p-0" onclick="toggleCode('reported-code-{{ snippet.id }}')">
+                <span id="toggle-reported-code-{{ snippet.id }}">👁️ Показать полный код</span>
+            </button>
+        </div>
+        <pre class="bg-dark p-2 rounded small" style="max-height: 200px; overflow: auto;"><code>{{ snippet.code[:1000]|e }}...</code></pre>
+        <div id="files-reported-code-{{ snippet.id }}" class="files-content" style="display: none;">
+            <pre class="bg-dark p-2 rounded small" style="max-height: 400px; overflow: auto;"><code>{{ snippet.code|e }}</code></pre>
+        </div>
+        {% else %}
+        <pre class="bg-dark p-2 rounded small" style="max-height: 200px; overflow: auto;"><code>{{ snippet.code|e }}</code></pre>
+        {% endif %}
+        {% endif %}
+        
+        <div class="mb-2">
+            <span class="badge bg-secondary">{{ snippet.category.name }}</span>
+            {% for tag in snippet.tags %}
+            <span class="badge bg-dark">{{ tag.name }}</span>
+            {% endfor %}
+        </div>
+        <form method="post" action="{{ url_for('moderate') }}" class="mt-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action_type" value="report_snippet">
+            <input type="hidden" name="item_id" value="{{ snippet.id }}">
+            <div class="mb-2">
+                <input type="text" name="rejection_reason" class="form-control form-control-sm" placeholder="Причина (если жалобы обоснованы)" style="max-width: 400px;">
+            </div>
+            <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Жалобы необоснованы</button>
+            <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">Жалобы обоснованы</button>
+        </form>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Комментарии с жалобами -->
+{% if reported_comments %}
+<h3 class="mb-3 text-danger">Комментарии с жалобами ({{ reported_comments|length }})</h3>
+{% for comment in reported_comments %}
+<div class="card mb-4 border-danger">
+    <div class="card-body">
+        <h6>Комментарий #{{ comment.id }} <span class="badge bg-danger">{{ comment.reports_count }} жалоб</span></h6>
+        <p class="text-secondary small">автор: {{ comment.author.username }} &middot; {{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+        <p class="mb-2">{{ comment.content }}</p>
+        <p class="small text-muted">К сниппету: <a href="{{ url_for('snippet', id=comment.snippet_id) }}" target="_blank">{{ comment.snippet.title }}</a></p>
+        <form method="post" action="{{ url_for('moderate') }}" class="mt-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action_type" value="report_comment">
+            <input type="hidden" name="item_id" value="{{ comment.id }}">
+            <div class="mb-2">
+                <input type="text" name="rejection_reason" class="form-control form-control-sm" placeholder="Причина (если жалобы обоснованы)" style="max-width: 400px;">
+            </div>
+            <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Жалобы необоснованы</button>
+            <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">Удалить комментарий</button>
+        </form>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if not pending_snippets and not reported_snippets and not reported_comments %}
+<p class="text-secondary">Нет контента на модерации.</p>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleFiles(containerId) {
+    const filesDiv = document.getElementById('files-' + containerId);
+    const toggleSpan = document.getElementById('toggle-' + containerId);
+    
+    if (filesDiv.style.display === 'none') {
+        filesDiv.style.display = 'block';
+        toggleSpan.textContent = '🙈 Скрыть файлы';
+    } else {
+        filesDiv.style.display = 'none';
+        toggleSpan.textContent = '👁️ Показать файлы';
+    }
+}
+
+function toggleCode(containerId) {
+    const codeDiv = document.getElementById('files-' + containerId);
+    const toggleSpan = document.getElementById('toggle-' + containerId);
+    
+    if (codeDiv.style.display === 'none') {
+        codeDiv.style.display = 'block';
+        toggleSpan.textContent = '🙈 Скрыть полный код';
+    } else {
+        codeDiv.style.display = 'none';
+        toggleSpan.textContent = '👁️ Показать полный код';
+    }
+}
+</script>
+{% endblock %}

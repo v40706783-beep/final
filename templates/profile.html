@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ profile_user.username }} - CodeHub{% endblock %}
+
+{% block main %}
+<h1 class="mb-4">{{ profile_user.username }}</h1>
+<p class="text-secondary">Участник с {{ profile_user.created_at.strftime('%Y-%m-%d') }}</p>
+
+<h4 class="mt-4">Одобренные сниппеты</h4>
+{% for snippet in snippets %}
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">
+            <a href="{{ url_for('snippet', id=snippet.id) }}" class="text-decoration-none text-white">{{ snippet.title }}</a>
+        </h5>
+        <p class="card-text text-secondary small">{{ snippet.description[:150] }}{% if snippet.description|length > 150 %}...{% endif %}</p>
+        <div class="d-flex gap-2 small">
+            <span class="badge bg-secondary">{{ snippet.category.name }}</span>
+            {% for tag in snippet.tags[:3] %}
+            <a href="{{ url_for('by_tag', name=tag.name) }}" class="badge bg-dark text-info">{{ tag.name }}</a>
+            {% endfor %}
+            <span class="text-secondary">&uarr; {{ snippet.likes_count }} &middot; {{ snippet.views_count }} просмотров</span>
+        </div>
+    </div>
+</div>
+{% else %}
+<p class="text-secondary">Одобренных сниппетов пока нет.</p>
+{% endfor %}
+{% endblock %}

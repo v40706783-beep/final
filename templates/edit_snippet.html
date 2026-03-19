@@ -1,0 +1,295 @@
+{% extends 'create.html' %}
+
+{% block title %}Edit {{ snippet.title }} - CodeHub{% endblock %}
+
+{% block main %}
+<div class="container" style="max-width: 900px;">
+    <h1 class="mb-4">Редактировать сниппет</h1>
+
+    <form method="post" action="{{ url_for('edit_snippet', id=snippet.id) }}" id="snippetForm" onsubmit="return prepareFormData()">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <!-- Название -->
+        <div class="form-section">
+            <label for="title" class="form-label form-section-title">Название сниппета</label>
+            <input type="text" class="form-control" id="title" name="title" required maxlength="200" 
+                   value="{{ snippet.title }}" placeholder="Краткое и понятное название">
+            <div class="help-text">Хорошее название помогает другим быстро понять суть вашего кода</div>
+        </div>
+
+        <!-- Причина отклонения (если сниппет был отклонен) -->
+        {% if snippet.status == 'rejected' and snippet.rejection_reason %}
+        <div class="form-section" style="border: 2px solid var(--warning); background-color: rgba(239, 107, 115, 0.1);">
+            <h5 style="color: var(--warning); margin-bottom: 12px;">⚠️ Сниппет был отклонен модерацией</h5>
+            <div style="background-color: var(--bg-card); padding: 12px; border-radius: 4px; margin-bottom: 12px;">
+                <strong>Причина отклонения:</strong>
+                <p style="margin-top: 8px; white-space: pre-wrap;">{{ snippet.rejection_reason }}</p>
+            </div>
+            <div class="mb-3">
+                <label for="resubmit_comment" class="form-label">Комментарий к изменениям (обязательно для повторной модерации)</label>
+                <textarea class="form-control" id="resubmit_comment" name="resubmit_comment" rows="3" 
+                          placeholder="Опишите, что вы изменили для устранения замечаний модерации..."></textarea>
+                <div class="help-text">Этот комментарий поможет модераторам понять, какие изменения вы внесли</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Описание -->
+        <div class="form-section">
+            <label for="description" class="form-label form-section-title">Описание</label>
+            <div class="editor-container">
+                <div class="github-tabs">
+                    <button type="button" class="github-tab active" data-tab="desc-write">
+                        <svg width="16" height="16" fill="currentColor" style="vertical-align: text-bottom; margin-right: 4px;">
+                            <path d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 000-.354l-1.086-1.086zM11.189 6.25L9.75 4.81l-6.286 6.287a.25.25 0 00-.064.108l-.558 1.953 1.953-.558a.249.249 0 00.108-.064l6.286-6.286z"></path>
+                        </svg>
+                        Написать
+                    </button>
+                    <button type="button" class="github-tab" data-tab="desc-preview">
+                        <svg width="16" height="16" fill="currentColor" style="vertical-align: text-bottom; margin-right: 4px;">
+                            <path d="M8 2c1.981 0 3.671.992 4.933 2.078 1.27 1.091 2.187 2.345 2.637 3.023a1.62 1.62 0 010 1.798c-.45.678-1.367 1.932-2.637 3.023C11.67 13.008 9.981 14 8 14c-1.981 0-3.671-.992-4.933-2.078C1.797 10.83.88 9.576.43 8.898a1.62 1.62 0 010-1.798c.45-.677 1.367-1.931 2.637-3.022C4.33 2.992 6.019 2 8 2zM1.679 7.932a.12.12 0 000 .136c.411.622 1.241 1.75 2.366 2.717C5.176 11.758 6.527 12.5 8 12.5c1.473 0 2.825-.742 3.955-1.715 1.124-.967 1.954-2.096 2.366-2.717a.12.12 0 000-.136c-.412-.621-1.242-1.75-2.366-2.717C10.824 4.242 9.473 3.5 8 3.5c-1.473 0-2.825.742-3.955 1.715-1.124.967-1.954 2.096-2.366 2.717zM8 10a2 2 0 100-4 2 2 0 000 4z"></path>
+                        </svg>
+                        Предпросмотр
+                    </button>
+                </div>
+                <div class="tab-content active" id="desc-write">
+                    <div class="editor-toolbar">
+                        <button type="button" class="editor-btn" onclick="insertMarkdown('**', '**')" title="Жирный">
+                            <strong>B</strong>
+                        </button>
+                        <button type="button" class="editor-btn" onclick="insertMarkdown('*', '*')" title="Курсив">
+                            <em>I</em>
+                        </button>
+                        <button type="button" class="editor-btn" onclick="insertMarkdown('`', '`')" title="Код">
+                            <code>&lt;/&gt;</code>
+                        </button>
+                        <button type="button" class="editor-btn" onclick="insertMarkdown('\n```\n', '\n```\n')" title="Блок кода">
+                            { }
+                        </button>
+                    </div>
+                    <textarea class="editor-textarea" id="description" name="description" 
+                              placeholder="Опишите, что делает ваш код, как его использовать и для чего он предназначен...">{{ snippet.description or '' }}</textarea>
+                </div>
+                <div class="tab-content" id="desc-preview">
+                    <div class="preview-content" id="desc-preview-content">
+                        <p class="text-secondary">Ничего для предпросмотра.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="help-text">Поддерживается базовый Markdown: **жирный**, *курсив*, `код`, ```блок кода```</div>
+        </div>
+
+        <!-- Файлы с кодом -->
+        <div class="form-section">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <label class="form-label form-section-title mb-0">Файлы с кодом</label>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="addFile()">
+                        <svg width="16" height="16" fill="currentColor" style="vertical-align: text-bottom; margin-right: 4px;">
+                            <path d="M7.75 2a.75.75 0 01.75.75V7h4.25a.75.75 0 010 1.5H8.5v4.25a.75.75 0 01-1.5 0V8.5H2.75a.75.75 0 010-1.5H7V2.75A.75.75 0 017.75 2z"></path>
+                        </svg>
+                        Создать файл
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="uploadFile()">
+                        📁 Загрузить файл
+                    </button>
+                </div>
+            </div>
+            
+            <div id="filesContainer">
+                <!-- Файлы будут добавляться сюда -->
+            </div>
+            
+            <input type="hidden" name="files_data" id="filesData">
+            <input type="hidden" name="code" id="code" value="{{ snippet.code or '' }}">
+            <input type="file" id="fileInput" style="display: none;" accept=".txt,.py,.js,.html,.css,.java,.cpp,.c,.h,.php,.rb,.go,.rs,.ts,.jsx,.tsx,.vue,.sql,.sh,.bat,.json,.xml,.yaml,.yml,.md,.rst,.ini,.cfg,.conf">
+            <div class="help-text">Создайте файлы вручную или загрузите с компьютера. Поддерживаются текстовые файлы до 1MB. Максимум 20 файлов — для больших проектов добавьте ссылку на GitHub/GitLab ниже.</div>
+        </div>
+
+        <!-- Ссылки на проекты -->
+        <div class="form-section">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <label class="form-label form-section-title mb-0">Ссылки на проекты</label>
+                <button type="button" class="btn btn-sm btn-outline-info" onclick="addLink()">
+                    🔗 Добавить ссылку
+                </button>
+            </div>
+            
+            <div id="linksContainer">
+                <!-- Ссылки будут добавляться сюда -->
+            </div>
+            
+            <input type="hidden" name="links_data" id="linksData">
+            <div class="help-text">Добавьте ссылки на GitHub, GitLab, CodePen или другие ресурсы с вашими проектами.</div>
+        </div>
+
+        <!-- Категория и теги -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-section">
+                    <label for="category_id" class="form-label form-section-title">Категория</label>
+                    <select class="form-select" id="category_id" name="category_id" required>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if snippet.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="help-text">Выберите наиболее подходящую категорию</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-section">
+                    <label class="form-label form-section-title">Теги</label>
+                    <div class="tag-input-container" id="tagContainer">
+                        <input type="text" class="tag-input" id="tagInput" placeholder="Добавить тег...">
+                    </div>
+                    <input type="hidden" name="tags" id="tagsHidden" value="{{ snippet.tags|map(attribute='name')|join(',') }}">
+                    <div class="help-text">Нажмите Enter или запятую для добавления тега (макс. 10)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Кнопки -->
+        <div class="d-flex gap-2 mb-4">
+            <button type="submit" class="btn btn-success">
+                <svg width="16" height="16" fill="currentColor" style="vertical-align: text-bottom; margin-right: 4px;">
+                    <path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path>
+                </svg>
+                {% if snippet.status == 'rejected' %}
+                Отправить на повторную модерацию
+                {% else %}
+                Сохранить изменения
+                {% endif %}
+            </button>
+            <a href="{{ url_for('snippet', id=snippet.id) }}" class="btn btn-outline-danger">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Загружаем существующие данные при редактировании
+document.addEventListener('DOMContentLoaded', function() {
+    // Ждем, пока загрузятся функции из create.html
+    setTimeout(function() {
+        // Загружаем существующие теги
+        const existingTagsStr = '{{ snippet.tags|map(attribute="name")|join(",") }}';
+        if (existingTagsStr) {
+            const existingTags = existingTagsStr.split(',').filter(t => t.trim());
+            existingTags.forEach(tag => {
+                if (tag.trim() && !tags.includes(tag.trim())) {
+                    tags.push(tag.trim());
+                }
+            });
+            renderTags();
+        }
+        
+        // Загружаем существующие файлы
+        {% if snippet.files_json %}
+        const existingFiles = {{ snippet.files_json|tojson|safe }};
+        if (existingFiles && existingFiles.length > 0) {
+            existingFiles.forEach((file) => {
+                createFileEditor({
+                    filename: file.filename,
+                    content: file.content,
+                    language: file.language || '',
+                    file_type: file.file_type || 'text',
+                    file_size: file.file_size || file.content.length,
+                    mime_type: file.mime_type || 'text/plain'
+                });
+            });
+        }
+        {% endif %}
+        
+        // Загружаем существующие ссылки
+        {% if snippet.links_json %}
+        const existingLinks = {{ snippet.links_json|tojson|safe }};
+        if (existingLinks && existingLinks.length > 0) {
+            existingLinks.forEach((link) => {
+                const linkId = linkIdCounter++;
+                const linkDiv = document.createElement('div');
+                linkDiv.className = 'link-editor mb-3 p-3 border rounded';
+                linkDiv.id = `link-${linkId}`;
+                linkDiv.style.backgroundColor = 'var(--bg-card)';
+                
+                const typeOptions = [
+                    { value: 'other', label: 'Другое' },
+                    { value: 'github', label: 'GitHub' },
+                    { value: 'gitlab', label: 'GitLab' },
+                    { value: 'codepen', label: 'CodePen' },
+                    { value: 'jsfiddle', label: 'JSFiddle' },
+                    { value: 'codesandbox', label: 'CodeSandbox' },
+                    { value: 'replit', label: 'Repl.it' },
+                    { value: 'glitch', label: 'Glitch' }
+                ];
+                
+                let typeSelect = '';
+                typeOptions.forEach(opt => {
+                    const selected = link.link_type === opt.value ? 'selected' : '';
+                    typeSelect += `<option value="${opt.value}" ${selected}>${opt.label}</option>`;
+                });
+                
+                const typeIcons = {
+                    github: '🐙', gitlab: '🦊', codepen: '✏️', jsfiddle: '🎻',
+                    codesandbox: '📦', replit: '🔄', glitch: '✨', other: '🔗'
+                };
+                
+                linkDiv.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">🔗 Ссылка на проект</h6>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeLink(${linkId})">
+                            <svg width="16" height="16" fill="currentColor">
+                                <path d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-2">
+                                <input type="text" class="form-control form-control-sm" 
+                                       placeholder="Название проекта" 
+                                       id="link-title-${linkId}" onchange="updateLinksData()">
+                            </div>
+                            <div class="mb-2">
+                                <input type="url" class="form-control form-control-sm" 
+                                       placeholder="https://github.com/username/project" 
+                                       id="link-url-${linkId}" onchange="updateLinksData(); detectLinkType(${linkId})">
+                            </div>
+                            <div class="mb-2">
+                                <textarea class="form-control form-control-sm" rows="2"
+                                          placeholder="Краткое описание проекта (необязательно)" 
+                                          id="link-description-${linkId}" onchange="updateLinksData()"></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <select class="form-select form-select-sm" id="link-type-${linkId}" onchange="updateLinksData()">
+                                    ${typeSelect}
+                                </select>
+                            </div>
+                            <div class="link-preview" id="link-preview-${linkId}">
+                                <span class="badge bg-info">${typeIcons[link.link_type] || '🔗'} ${link.link_type}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Устанавливаем значения после создания элементов
+                document.getElementById('linksContainer').appendChild(linkDiv);
+                document.getElementById(`link-title-${linkId}`).value = link.title || '';
+                document.getElementById(`link-url-${linkId}`).value = link.url || '';
+                document.getElementById(`link-description-${linkId}`).value = link.description || '';
+            });
+        }
+        {% endif %}
+        
+        // Если нет файлов, добавляем один пустой
+        if (document.getElementById('filesContainer').children.length === 0) {
+            createFileEditor();
+        }
+        
+        // Обновляем данные
+        updateFilesData();
+        updateLinksData();
+    }, 100);
+});
+</script>
+{% endblock %}

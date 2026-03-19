@@ -1,0 +1,901 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Snippet - CodeHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .github-tabs {
+        display: flex;
+        border-bottom: 1px solid #3a3a3a;
+        margin-bottom: 0;
+        background-color: var(--bg-card);
+        border-radius: 6px 6px 0 0;
+    }
+    .github-tab {
+        padding: 10px 16px;
+        cursor: pointer;
+        border: none;
+        background: none;
+        color: var(--text-secondary);
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+    }
+    .github-tab:hover {
+        color: var(--text-primary);
+    }
+    .github-tab.active {
+        color: var(--text-primary);
+        border-bottom-color: var(--accent);
+    }
+    .tab-content {
+        display: none;
+    }
+    .tab-content.active {
+        display: block;
+    }
+    .editor-container {
+        border: 1px solid #3a3a3a;
+        border-radius: 0 0 6px 6px;
+        background-color: var(--bg-card);
+    }
+    .editor-toolbar {
+        padding: 8px 12px;
+        border-bottom: 1px solid #3a3a3a;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .editor-btn {
+        padding: 4px 8px;
+        background: none;
+        border: 1px solid #3a3a3a;
+        border-radius: 4px;
+        color: var(--text-primary);
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    .editor-btn:hover {
+        background-color: #3a3a3a;
+        border-color: var(--accent);
+    }
+    .editor-textarea {
+        width: 100%;
+        min-height: 300px;
+        padding: 12px;
+        border: none;
+        background-color: var(--bg-card);
+        color: var(--text-primary);
+        font-family: 'Courier New', monospace;
+        resize: vertical;
+        outline: none;
+    }
+    .preview-content {
+        padding: 16px;
+        min-height: 300px;
+    }
+    .preview-content pre {
+        background-color: #1a1a1a;
+        padding: 12px;
+        border-radius: 4px;
+        overflow-x: auto;
+    }
+    .form-section {
+        background-color: var(--bg-card);
+        padding: 20px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        border: 1px solid #3a3a3a;
+    }
+    .form-section-title {
+        color: var(--heading);
+        font-size: 18px;
+        margin-bottom: 16px;
+        font-weight: 600;
+    }
+    .help-text {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-top: 4px;
+    }
+    .tag-input-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px;
+        border: 1px solid #3a3a3a;
+        border-radius: 4px;
+        background-color: var(--bg-card);
+        min-height: 42px;
+    }
+    .tag-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        background-color: var(--tag);
+        color: #000;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+    .tag-remove {
+        cursor: pointer;
+        font-weight: bold;
+    }
+    .tag-input {
+        border: none;
+        background: none;
+        color: var(--text-primary);
+        outline: none;
+        flex: 1;
+        min-width: 120px;
+    }
+    .file-editor {
+        border: 1px solid #3a3a3a;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container" style="max-width: 900px;">
+    <h1 class="mb-4">Создать новый сниппет</h1>
+
+    <form method="post" action="{{ url_for('create_snippet') }}" id="snippetForm" onsubmit="return prepareFormData()">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <!-- Название -->
+        <div class="form-section">
+            <label for="title" class="form-label form-section-title">Название сниппета</label>
+            <input type="text" class="form-control" id="title" name="title" required maxlength="200" 
+                   placeholder="Краткое и понятное название">
+            <div class="help-text">Хорошее название помогает другим быстро понять суть вашего кода</div>
+        </div>
+
+        <!-- Описание -->
+        <div class="form-section">
+            <label for="description" class="form-label form-section-title">Описание</label>
+            <div class="editor-container">
+                <div class="github-tabs">
+                    <button type="button" class="github-tab active" data-tab="desc-write">
+                        <svg width="16" height="16" fill="currentColor" style="vertical-align: text-bottom; margin-right: 4px;">
+                            <path d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 000-.354l-1.086-1.086zM11.189 6.25L9.75 4.81l-6.286 6.287a.25.25 0 00-.064.108l-.558 1.953 1.953-.558a.249.249 0 00.108-.064l6.286-6.286z"></path>
+                        </svg>
+                        Написать
+                    </button>
+                    <button type="button" class="github-tab" data-tab="desc-preview">
+                        <svg width="16" height="16" fill="currentColor" style="vertical-align: text-bottom; margin-right: 4px;">
+                            <path d="M8 2c1.981 0 3.671.992 4.933 2.078 1.27 1.091 2.187 2.345 2.637 3.023a1.62 1.62 0 010 1.798c-.45.678-1.367 1.932-2.637 3.023C11.67 13.008 9.981 14 8 14c-1.981 0-3.671-.992-4.933-2.078C1.797 10.83.88 9.576.43 8.898a1.62 1.62 0 010-1.798c.45-.677 1.367-1.931 2.637-3.022C4.33 2.992 6.019 2 8 2zM1.679 7.932a.12.12 0 000 .136c.411.622 1.241 1.75 2.366 2.717C5.176 11.758 6.527 12.5 8 12.5c1.473 0 2.825-.742 3.955-1.715 1.124-.967 1.954-2.096 2.366-2.717a.12.12 0 000-.136c-.412-.621-1.242-1.75-2.366-2.717C10.824 4.242 9.473 3.5 8 3.5c-1.473 0-2.825.742-3.955 1.715-1.124.967-1.954 2.096-2.366 2.717zM8 10a2 2 0 100-4 2 2 0 000 4z"></path>
+                        </svg>
+                        Предпросмотр
+                    </button>
+                </div>
+                <div class="tab-content active" id="desc-write">
+                    <div class="editor-toolbar">
+
+
+
+                    </div>
+                    <textarea class="editor-textarea" id="description" name="description" 
+                              placeholder="Опишите, что делает ваш код, как его использовать и для чего он предназначен..."></textarea>
+                </div>
+                <div class="tab-content" id="desc-preview">
+                    <div class="preview-content" id="desc-preview-content">
+                        <p class="text-secondary">Ничего для предпросмотра. Начните писать описание.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Код / Файлы -->
+        <div class="form-section">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <label class="form-label form-section-title mb-0">Файлы с кодом</label>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="addFile()">
+                        <svg width="16" height="16" fill="currentColor" style="vertical-align: text-bottom; margin-right: 4px;">
+                            <path d="M7.75 2a.75.75 0 01.75.75V7h4.25a.75.75 0 010 1.5H8.5v4.25a.75.75 0 01-1.5 0V8.5H2.75a.75.75 0 010-1.5H7V2.75A.75.75 0 017.75 2z"></path>
+                        </svg>
+                        Создать файл
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="uploadFile()">
+                        📁 Загрузить файл
+                    </button>
+                </div>
+            </div>
+            
+            <div id="filesContainer">
+                <!-- Файлы будут добавляться сюда -->
+            </div>
+            
+            <input type="hidden" name="files_data" id="filesData">
+            <input type="hidden" name="code" id="code" value="">
+            <input type="file" id="fileInput" style="display: none;" accept=".txt,.py,.js,.html,.css,.java,.cpp,.c,.h,.php,.rb,.go,.rs,.ts,.jsx,.tsx,.vue,.sql,.sh,.bat,.json,.xml,.yaml,.yml,.md,.rst,.ini,.cfg,.conf">
+            <div class="help-text">Создайте файлы вручную или загрузите с компьютера. Поддерживаются текстовые файлы до 1MB. Максимум 20 файлов — для больших проектов добавьте ссылку на GitHub/GitLab ниже.</div>
+        </div>
+
+        <!-- Ссылки на проекты -->
+        <div class="form-section">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <label class="form-label form-section-title mb-0">Ссылки на проекты</label>
+                <button type="button" class="btn btn-sm btn-outline-info" onclick="addLink()">
+                    🔗 Добавить ссылку
+                </button>
+            </div>
+            
+            <div id="linksContainer">
+                <!-- Ссылки будут добавляться сюда -->
+            </div>
+            
+            <input type="hidden" name="links_data" id="linksData">
+            <div class="help-text">Добавьте ссылки на GitHub, GitLab, CodePen или другие ресурсы с вашими проектами.</div>
+        </div>
+
+        <!-- Категория и теги -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-section">
+                    <label for="category_id" class="form-label form-section-title">Категория</label>
+                    <select class="form-select" id="category_id" name="category_id" required>
+                        <option value="">Выберите категорию...</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="help-text">Выберите наиболее подходящую категорию</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-section">
+                    <label class="form-label form-section-title">Теги</label>
+                    <div class="tag-input-container" id="tagContainer">
+                        <input type="text" class="tag-input" id="tagInput" placeholder="Добавить тег...">
+                    </div>
+                    <input type="hidden" name="tags" id="tagsHidden">
+                    <div class="help-text">Нажмите Enter или запятую для добавления тега (макс. 10)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Кнопки -->
+        <div class="d-flex gap-2 mb-4">
+            <button type="submit" class="btn btn-success">
+                <svg width="16" height="16" fill="currentColor" style="vertical-align: text-bottom; margin-right: 4px;">
+                    <path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path>
+                </svg>
+                Отправить на модерацию
+            </button>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-danger">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Массивы для хранения файлов и ссылок
+let files = [];
+let links = [];
+let fileIdCounter = 0;
+let linkIdCounter = 0;
+const MAX_FILES = 20;
+
+function getFileCount() {
+    return document.getElementById('filesContainer').querySelectorAll('.file-editor').length;
+}
+
+// Загрузка файла с компьютера
+function uploadFile() {
+    if (getFileCount() >= MAX_FILES) {
+        alert(`Максимум ${MAX_FILES} файлов. Для больших проектов используйте ссылку на GitHub/GitLab.`);
+        return;
+    }
+    document.getElementById('fileInput').click();
+}
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // Показываем индикатор загрузки
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'alert alert-info';
+    loadingDiv.innerHTML = '⏳ Загружаем файл...';
+    document.getElementById('filesContainer').appendChild(loadingDiv);
+    
+    fetch('/upload-file', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        loadingDiv.remove();
+        if (data.error) {
+            alert('Ошибка: ' + data.error);
+        } else {
+            if (getFileCount() >= MAX_FILES) {
+                alert(`Максимум ${MAX_FILES} файлов. Для больших проектов используйте ссылку на GitHub/GitLab.`);
+                return;
+            }
+            // Создаем файл с загруженными данными
+            createFileEditor(data);
+        }
+    })
+    .catch(error => {
+        loadingDiv.remove();
+        alert('Ошибка при загрузке файла: ' + error);
+    });
+    
+    // Очищаем input для повторной загрузки
+    e.target.value = '';
+});
+
+// Создание редактора файла
+function createFileEditor(fileData = {}) {
+    const fileId = fileIdCounter++;
+    const fileDiv = document.createElement('div');
+    fileDiv.className = 'file-editor mb-3';
+    fileDiv.id = `file-${fileId}`;
+    
+    const isUploaded = fileData.file_type === 'uploaded';
+    
+    fileDiv.innerHTML = `
+        <div class="editor-container">
+            <div class="d-flex justify-content-between align-items-center p-2" style="background-color: var(--bg-card); border-bottom: 1px solid #3a3a3a;">
+                <input type="text" class="form-control form-control-sm" style="max-width: 300px;" 
+                       placeholder="Имя файла (например: main.py)" 
+                       id="filename-${fileId}" value="${fileData.filename || ''}" onchange="updateFilesData()" ${isUploaded ? 'readonly' : ''}>
+                <div class="d-flex gap-2">
+                    ${isUploaded ? '<span class="badge bg-info">Загружен</span>' : ''}
+                    <select class="form-select form-select-sm" style="max-width: 150px;" 
+                            id="language-${fileId}" onchange="updateFilesData()">
+                        <option value="">Язык...</option>
+                        <option value="python" ${fileData.language === 'python' ? 'selected' : ''}>Python</option>
+                        <option value="javascript" ${fileData.language === 'javascript' ? 'selected' : ''}>JavaScript</option>
+                        <option value="typescript" ${fileData.language === 'typescript' ? 'selected' : ''}>TypeScript</option>
+                        <option value="java" ${fileData.language === 'java' ? 'selected' : ''}>Java</option>
+                        <option value="cpp" ${fileData.language === 'cpp' ? 'selected' : ''}>C++</option>
+                        <option value="csharp" ${fileData.language === 'csharp' ? 'selected' : ''}>C#</option>
+                        <option value="php" ${fileData.language === 'php' ? 'selected' : ''}>PHP</option>
+                        <option value="ruby" ${fileData.language === 'ruby' ? 'selected' : ''}>Ruby</option>
+                        <option value="go" ${fileData.language === 'go' ? 'selected' : ''}>Go</option>
+                        <option value="rust" ${fileData.language === 'rust' ? 'selected' : ''}>Rust</option>
+                        <option value="html" ${fileData.language === 'html' ? 'selected' : ''}>HTML</option>
+                        <option value="css" ${fileData.language === 'css' ? 'selected' : ''}>CSS</option>
+                        <option value="sql" ${fileData.language === 'sql' ? 'selected' : ''}>SQL</option>
+                        <option value="bash" ${fileData.language === 'bash' ? 'selected' : ''}>Bash</option>
+                        <option value="json" ${fileData.language === 'json' ? 'selected' : ''}>JSON</option>
+                        <option value="xml" ${fileData.language === 'xml' ? 'selected' : ''}>XML</option>
+                        <option value="yaml" ${fileData.language === 'yaml' ? 'selected' : ''}>YAML</option>
+                        <option value="markdown" ${fileData.language === 'markdown' ? 'selected' : ''}>Markdown</option>
+                        <option value="other" ${fileData.language === 'other' ? 'selected' : ''}>Другой</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFile(${fileId})">
+                        <svg width="16" height="16" fill="currentColor">
+                            <path d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="github-tabs">
+                <button type="button" class="github-tab active" data-tab="file-write-${fileId}">
+                    <svg width="16" height="16" fill="currentColor" style="vertical-align: text-bottom; margin-right: 4px;">
+                        <path d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 000-.354l-1.086-1.086zM11.189 6.25L9.75 4.81l-6.286 6.287a.25.25 0 00-.064.108l-.558 1.953 1.953-.558a.249.249 0 00.108-.064l6.286-6.286z"></path>
+                    </svg>
+                    Редактировать
+                </button>
+                <button type="button" class="github-tab" data-tab="file-preview-${fileId}">
+                    <svg width="16" height="16" fill="currentColor" style="vertical-align: text-bottom; margin-right: 4px;">
+                        <path d="M8 2c1.981 0 3.671.992 4.933 2.078 1.27 1.091 2.187 2.345 2.637 3.023a1.62 1.62 0 010 1.798c-.45.678-1.367 1.932-2.637 3.023C11.67 13.008 9.981 14 8 14c-1.981 0-3.671-.992-4.933-2.078C1.797 10.83.88 9.576.43 8.898a1.62 1.62 0 010-1.798c.45-.677 1.367-1.931 2.637-3.022C4.33 2.992 6.019 2 8 2zM1.679 7.932a.12.12 0 000 .136c.411.622 1.241 1.75 2.366 2.717C5.176 11.758 6.527 12.5 8 12.5c1.473 0 2.825-.742 3.955-1.715 1.124-.967 1.954-2.096 2.366-2.717a.12.12 0 000-.136c-.412-.621-1.242-1.75-2.366-2.717C10.824 4.242 9.473 3.5 8 3.5c-1.473 0-2.825.742-3.955 1.715-1.124.967-1.954 2.096-2.366 2.717zM8 10a2 2 0 100-4 2 2 0 000 4z"></path>
+                    </svg>
+                    Предпросмотр
+                </button>
+            </div>
+            <div class="tab-content active" id="file-write-${fileId}">
+                <textarea class="editor-textarea" id="content-${fileId}" 
+                          placeholder="Вставьте код..." style="min-height: 300px;" onchange="updateFilesData()">${fileData.content || ''}</textarea>
+            </div>
+            <div class="tab-content" id="file-preview-${fileId}">
+                <div class="preview-content" id="file-preview-content-${fileId}">
+                    <p class="text-secondary">Ничего для предпросмотра.</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('filesContainer').appendChild(fileDiv);
+    
+    // Добавляем обработчики вкладок для нового файла
+    fileDiv.querySelectorAll('.github-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabName = this.dataset.tab;
+            const container = this.closest('.editor-container');
+            
+            container.querySelectorAll('.github-tab').forEach(t => t.classList.remove('active'));
+            container.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            this.classList.add('active');
+            container.querySelector('#' + tabName).classList.add('active');
+            
+            if (tabName.startsWith('file-preview-')) {
+                const id = tabName.replace('file-preview-', '');
+                updateFilePreview(id);
+            }
+        });
+    });
+    
+    // Сразу обновляем данные
+    setTimeout(() => {
+        updateFilesData();
+    }, 100);
+}
+
+// Добавление файла (старая функция, теперь создает пустой файл)
+function addFile() {
+    if (getFileCount() >= MAX_FILES) {
+        alert(`Максимум ${MAX_FILES} файлов. Для больших проектов используйте ссылку на GitHub/GitLab.`);
+        return;
+    }
+    createFileEditor();
+}
+
+// Добавление ссылки
+function addLink() {
+    const linkId = linkIdCounter++;
+    const linkDiv = document.createElement('div');
+    linkDiv.className = 'link-editor mb-3 p-3 border rounded';
+    linkDiv.id = `link-${linkId}`;
+    linkDiv.style.backgroundColor = 'var(--bg-card)';
+    
+    linkDiv.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">🔗 Ссылка на проект</h6>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeLink(${linkId})">
+                <svg width="16" height="16" fill="currentColor">
+                    <path d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="row">
+            <div class="col-md-8">
+                <div class="mb-2">
+                    <input type="text" class="form-control form-control-sm" 
+                           placeholder="Название проекта" 
+                           id="link-title-${linkId}" onchange="updateLinksData()">
+                </div>
+                <div class="mb-2">
+                    <input type="url" class="form-control form-control-sm" 
+                           placeholder="https://github.com/username/project" 
+                           id="link-url-${linkId}" onchange="updateLinksData(); detectLinkType(${linkId})">
+                </div>
+                <div class="mb-2">
+                    <textarea class="form-control form-control-sm" rows="2"
+                              placeholder="Краткое описание проекта (необязательно)" 
+                              id="link-description-${linkId}" onchange="updateLinksData()"></textarea>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="mb-2">
+                    <select class="form-select form-select-sm" id="link-type-${linkId}" onchange="updateLinksData()">
+                        <option value="other">Другое</option>
+                        <option value="github">GitHub</option>
+                        <option value="gitlab">GitLab</option>
+                        <option value="codepen">CodePen</option>
+                        <option value="jsfiddle">JSFiddle</option>
+                        <option value="codesandbox">CodeSandbox</option>
+                        <option value="replit">Repl.it</option>
+                        <option value="glitch">Glitch</option>
+                    </select>
+                </div>
+                <div class="link-preview" id="link-preview-${linkId}">
+                    <small class="text-secondary">Введите URL для предпросмотра</small>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('linksContainer').appendChild(linkDiv);
+    updateLinksData();
+}
+
+// Удаление ссылки
+function removeLink(linkId) {
+    const linkDiv = document.getElementById(`link-${linkId}`);
+    if (linkDiv) {
+        linkDiv.remove();
+        updateLinksData();
+    }
+}
+
+// Автоопределение типа ссылки
+function detectLinkType(linkId) {
+    const urlInput = document.getElementById(`link-url-${linkId}`);
+    const typeSelect = document.getElementById(`link-type-${linkId}`);
+    const preview = document.getElementById(`link-preview-${linkId}`);
+    const url = urlInput.value.toLowerCase();
+    
+    if (url.includes('github.com')) {
+        typeSelect.value = 'github';
+        preview.innerHTML = '<span class="badge bg-dark">🐙 GitHub</span>';
+    } else if (url.includes('gitlab.com')) {
+        typeSelect.value = 'gitlab';
+        preview.innerHTML = '<span class="badge bg-warning text-dark">🦊 GitLab</span>';
+    } else if (url.includes('codepen.io')) {
+        typeSelect.value = 'codepen';
+        preview.innerHTML = '<span class="badge bg-success">✏️ CodePen</span>';
+    } else if (url.includes('jsfiddle.net')) {
+        typeSelect.value = 'jsfiddle';
+        preview.innerHTML = '<span class="badge bg-primary">🎻 JSFiddle</span>';
+    } else if (url.includes('codesandbox.io')) {
+        typeSelect.value = 'codesandbox';
+        preview.innerHTML = '<span class="badge bg-info">📦 CodeSandbox</span>';
+    } else if (url.includes('replit.com') || url.includes('repl.it')) {
+        typeSelect.value = 'replit';
+        preview.innerHTML = '<span class="badge bg-secondary">🔄 Repl.it</span>';
+    } else if (url.includes('glitch.com')) {
+        typeSelect.value = 'glitch';
+        preview.innerHTML = '<span class="badge bg-danger">✨ Glitch</span>';
+    } else if (url) {
+        typeSelect.value = 'other';
+        preview.innerHTML = '<span class="badge bg-light text-dark">🔗 Ссылка</span>';
+    } else {
+        preview.innerHTML = '<small class="text-secondary">Введите URL для предпросмотра</small>';
+    }
+    
+    updateLinksData();
+}
+
+// Обновление данных ссылок
+function updateLinksData() {
+    const linksData = [];
+    const container = document.getElementById('linksContainer');
+    const linkEditors = container.querySelectorAll('.link-editor');
+    
+    console.log('Обновляем данные ссылок, найдено редакторов:', linkEditors.length);
+    
+    linkEditors.forEach((editor, index) => {
+        const id = editor.id.replace('link-', '');
+        const title = document.getElementById(`link-title-${id}`)?.value || '';
+        const url = document.getElementById(`link-url-${id}`)?.value || '';
+        const description = document.getElementById(`link-description-${id}`)?.value || '';
+        const linkType = document.getElementById(`link-type-${id}`)?.value || 'other';
+        
+        console.log(`Ссылка ${index}:`, { title, url, linkType });
+        
+        if (title.trim() && url.trim()) {
+            linksData.push({
+                title: title.trim(),
+                url: url.trim(),
+                description: description.trim(),
+                link_type: linkType
+            });
+        }
+    });
+    
+    const jsonData = JSON.stringify(linksData);
+    document.getElementById('linksData').value = jsonData;
+    console.log('Данные ссылок обновлены:', jsonData);
+    
+    // Обновляем предпросмотр, если он активен
+    updateAllFilesPreview();
+}
+function removeFile(fileId) {
+    const fileDiv = document.getElementById(`file-${fileId}`);
+    if (fileDiv) {
+        fileDiv.remove();
+        updateFilesData();
+    }
+}
+
+// Обновление данных файлов
+function updateFilesData() {
+    const filesData = [];
+    const container = document.getElementById('filesContainer');
+    const fileEditors = container.querySelectorAll('.file-editor');
+    
+    console.log('Обновляем данные файлов, найдено редакторов:', fileEditors.length);
+    
+    fileEditors.forEach((editor, index) => {
+        const id = editor.id.replace('file-', '');
+        const filename = document.getElementById(`filename-${id}`)?.value || '';
+        const content = document.getElementById(`content-${id}`)?.value || '';
+        const language = document.getElementById(`language-${id}`)?.value || '';
+        
+        console.log(`Файл ${index}:`, { filename, contentLength: content.length, language });
+        
+        if (filename.trim() && content.trim()) {
+            filesData.push({
+                filename: filename.trim(),
+                content: content,
+                language: language,
+                file_type: 'text',
+                file_size: content.length,
+                mime_type: 'text/plain'
+            });
+        }
+    });
+    
+    const jsonData = JSON.stringify(filesData);
+    document.getElementById('filesData').value = jsonData;
+    console.log('Данные файлов обновлены:', jsonData);
+    
+    // Обновляем предпросмотр, если он активен
+    updateAllFilesPreview();
+}
+
+// Обновление предпросмотра файла
+function updateFilePreview(fileId) {
+    const content = document.getElementById(`content-${fileId}`)?.value || '';
+    const target = document.getElementById(`file-preview-content-${fileId}`);
+    
+    if (!content.trim()) {
+        target.innerHTML = '<p class="text-secondary">Ничего для предпросмотра.</p>';
+        return;
+    }
+    
+    target.innerHTML = '<pre><code>' + escapeHtml(content) + '</code></pre>';
+}
+
+// Обновление общего предпросмотра всех файлов и ссылок
+function updateAllFilesPreview() {
+    const container = document.getElementById('filesContainer');
+    const fileEditors = container.querySelectorAll('.file-editor');
+    const linksContainer = document.getElementById('linksContainer');
+    const linkEditors = linksContainer.querySelectorAll('.link-editor');
+    
+    let previewHtml = '';
+    
+    // Файлы
+    if (fileEditors.length === 0) {
+        previewHtml += '<p class="text-secondary">Файлы не добавлены.</p>';
+    } else {
+        previewHtml += '<h6>Файлы:</h6>';
+        fileEditors.forEach((editor, index) => {
+            const id = editor.id.replace('file-', '');
+            const filename = document.getElementById(`filename-${id}`)?.value || `Файл ${index + 1}`;
+            const content = document.getElementById(`content-${id}`)?.value || '';
+            const language = document.getElementById(`language-${id}`)?.value || '';
+            
+            if (filename || content) {
+                previewHtml += `
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <strong>📄 ${escapeHtml(filename)}</strong>
+                            ${language ? `<span class="badge bg-secondary">${language}</span>` : ''}
+                        </div>
+                        <pre class="mb-0" style="background-color: #1a1a1a; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 300px;"><code>${escapeHtml(content)}</code></pre>
+                    </div>
+                `;
+            }
+        });
+    }
+    
+    // Ссылки
+    if (linkEditors.length > 0) {
+        previewHtml += '<h6>Ссылки на проекты:</h6>';
+        linkEditors.forEach(editor => {
+            const id = editor.id.replace('link-', '');
+            const title = document.getElementById(`link-title-${id}`)?.value || '';
+            const url = document.getElementById(`link-url-${id}`)?.value || '';
+            const description = document.getElementById(`link-description-${id}`)?.value || '';
+            const linkType = document.getElementById(`link-type-${id}`)?.value || 'other';
+            
+            if (title && url) {
+                const typeIcons = {
+                    github: '🐙', gitlab: '🦊', codepen: '✏️', jsfiddle: '🎻',
+                    codesandbox: '📦', replit: '🔄', glitch: '✨', other: '🔗'
+                };
+                
+                previewHtml += `
+                    <div class="mb-3 p-2 border rounded" style="background-color: #2d2d2d;">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <strong>${typeIcons[linkType]} ${escapeHtml(title)}</strong>
+                            <span class="badge bg-info">${linkType}</span>
+                        </div>
+                        <div class="mb-1">
+                            <a href="${escapeHtml(url)}" target="_blank" class="text-info">${escapeHtml(url)}</a>
+                        </div>
+                        ${description ? `<small class="text-secondary">${escapeHtml(description)}</small>` : ''}
+                    </div>
+                `;
+            }
+        });
+    }
+    
+    // Обновляем предпросмотр в разделе описания, если он активен
+    const descPreview = document.getElementById('desc-preview-content');
+    if (descPreview && document.getElementById('desc-preview').classList.contains('active')) {
+        const description = document.getElementById('description').value;
+        let descHtml = '';
+        
+        if (description.trim()) {
+            // Простой Markdown парсер
+            let html = escapeHtml(description);
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            html = html.replace(/`(.+?)`/g, '<code>$1</code>');
+            html = html.replace(/```\n([\s\S]+?)\n```/g, '<pre><code>$1</code></pre>');
+            html = html.replace(/\n/g, '<br>');
+            descHtml = html;
+        } else {
+            descHtml = '<p class="text-secondary">Описание не добавлено.</p>';
+        }
+        
+        descPreview.innerHTML = `
+            <div class="mb-4">
+                <h5>Описание:</h5>
+                ${descHtml}
+            </div>
+            <div>
+                ${previewHtml}
+            </div>
+        `;
+    }
+}
+
+// Подготовка данных перед отправкой формы
+function prepareFormData() {
+    console.log('Подготавливаем данные формы...');
+    updateFilesData();
+    updateLinksData();
+    
+    const filesData = document.getElementById('filesData').value;
+    const linksData = document.getElementById('linksData').value;
+    const codeData = document.getElementById('code')?.value || '';
+    
+    console.log('Files data:', filesData);
+    console.log('Links data:', linksData);
+    console.log('Code data length:', codeData.length);
+    
+    // Проверяем, есть ли хотя бы что-то
+    const files = JSON.parse(filesData || '[]');
+    const links = JSON.parse(linksData || '[]');
+    
+    if (!codeData.trim() && files.length === 0 && links.length === 0) {
+        alert('Добавьте хотя бы один файл с кодом или ссылку на проект перед отправкой!');
+        return false; // Блокируем отправку формы
+    }
+    
+    console.log('Форма готова к отправке');
+    return true; // Разрешаем отправку формы
+}
+
+// Добавляем первый файл при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    createFileEditor();
+});
+
+// Переключение вкладок
+document.querySelectorAll('.github-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        const tabName = this.dataset.tab;
+        const container = this.closest('.editor-container');
+        
+        // Убираем active у всех вкладок и контента
+        container.querySelectorAll('.github-tab').forEach(t => t.classList.remove('active'));
+        container.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Добавляем active к текущей вкладке
+        this.classList.add('active');
+        container.querySelector('#' + tabName).classList.add('active');
+        
+        // Обновляем предпросмотр
+        if (tabName === 'desc-preview') {
+            updatePreview('description', 'desc-preview-content');
+        }
+    });
+});
+
+// Вставка Markdown
+function insertMarkdown(before, after) {
+    const textarea = document.getElementById('description');
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selectedText = text.substring(start, end);
+    
+    const newText = text.substring(0, start) + before + selectedText + after + text.substring(end);
+    textarea.value = newText;
+    textarea.focus();
+    textarea.setSelectionRange(start + before.length, end + before.length);
+}
+
+// Обновление предпросмотра
+function updatePreview(sourceId, targetId, isCode = false) {
+    const source = document.getElementById(sourceId);
+    const target = document.getElementById(targetId);
+    const text = source.value;
+    
+    if (sourceId === 'description') {
+        // Для описания показываем и описание, и файлы
+        updateAllFilesPreview();
+        return;
+    }
+    
+    if (!text.trim()) {
+        target.innerHTML = '<p class="text-secondary">Ничего для предпросмотра.</p>';
+        return;
+    }
+    
+    if (isCode) {
+        target.innerHTML = '<pre><code>' + escapeHtml(text) + '</code></pre>';
+    } else {
+        // Простой Markdown парсер
+        let html = escapeHtml(text);
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        html = html.replace(/`(.+?)`/g, '<code>$1</code>');
+        html = html.replace(/```\n([\s\S]+?)\n```/g, '<pre><code>$1</code></pre>');
+        html = html.replace(/\n/g, '<br>');
+        target.innerHTML = html;
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Система тегов
+const tags = [];
+const tagInput = document.getElementById('tagInput');
+const tagContainer = document.getElementById('tagContainer');
+const tagsHidden = document.getElementById('tagsHidden');
+
+tagInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        addTag();
+    }
+});
+
+tagInput.addEventListener('blur', function() {
+    if (this.value.trim()) {
+        addTag();
+    }
+});
+
+function addTag() {
+    const value = tagInput.value.trim().replace(',', '');
+    if (value && tags.length < 10 && !tags.includes(value)) {
+        tags.push(value);
+        renderTags();
+        tagInput.value = '';
+        updateTagsHidden();
+    }
+}
+
+function removeTag(tag) {
+    const index = tags.indexOf(tag);
+    if (index > -1) {
+        tags.splice(index, 1);
+        renderTags();
+        updateTagsHidden();
+    }
+}
+
+function renderTags() {
+    const existingTags = tagContainer.querySelectorAll('.tag-badge');
+    existingTags.forEach(t => t.remove());
+    
+    tags.forEach(tag => {
+        const badge = document.createElement('span');
+        badge.className = 'tag-badge';
+        badge.innerHTML = `${tag} <span class="tag-remove" onclick="removeTag('${tag}')">&times;</span>`;
+        tagContainer.insertBefore(badge, tagInput);
+    });
+}
+
+function updateTagsHidden() {
+    tagsHidden.value = tags.join(',');
+}
+</script>
+{% endblock %}

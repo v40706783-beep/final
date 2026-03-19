@@ -1,0 +1,343 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ snippet.title }} - CodeHub{% endblock %}
+
+{% block main %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <h1>{{ snippet.title }}</h1>
+    {% if current_user.is_authenticated and snippet.author_id == current_user.id %}
+    <div>
+        <a href="{{ url_for('edit_snippet', id=snippet.id) }}" class="btn btn-outline-secondary btn-sm">Редактировать</a>
+        <form method="post" action="{{ url_for('delete_snippet', id=snippet.id) }}" class="d-inline" onsubmit="return confirm('Удалить этот сниппет?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-danger btn-sm">Удалить</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+{% if snippet.status == 'pending' %}
+<div class="alert alert-info">
+    <strong>ℹ️ Ожидает модерации</strong><br>
+    Этот сниппет ожидает проверки модератором.
+</div>
+{% elif snippet.status == 'rejected' %}
+    {% if snippet.author_id == current_user.id %}
+    <div class="alert alert-danger">
+        <h5 style="margin-bottom: 12px;">⚠️ Сниппет отклонен модерацией</h5>
+        <div style="background-color: rgba(0,0,0,0.2); padding: 12px; border-radius: 4px; margin-bottom: 12px;">
+            <strong>Причина отклонения:</strong>
+            <p style="margin-top: 8px; margin-bottom: 0; white-space: pre-wrap;">{{ snippet.rejection_reason or 'Причина не указана' }}</p>
+        </div>
+        <a href="{{ url_for('edit_snippet', id=snippet.id) }}" class="btn btn-warning btn-sm">
+            ✏️ Исправить и отправить на повторную модерацию
+        </a>
+    </div>
+    {% else %}
+    <div class="alert alert-danger">
+        <strong>⚠️ Этот сниппет был отклонен модерацией</strong>
+    </div>
+    {% endif %}
+{% endif %}
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex flex-wrap gap-2 mb-2">
+            <span class="badge bg-secondary">{{ snippet.category.name }}</span>
+            {% for tag in snippet.tags %}
+            <a href="{{ url_for('by_tag', name=tag.name) }}" class="badge bg-dark text-info">{{ tag.name }}</a>
+            {% endfor %}
+        </div>
+        <p class="text-secondary">автор: <a href="{{ url_for('profile', username=snippet.author.username) }}" class="text-info">{{ snippet.author.username }}</a>
+            &middot; {{ snippet.created_at.strftime('%Y-%m-%d %H:%M') }}
+            &middot; {{ snippet.views_count }} просмотров</p>
+        {% if snippet.description %}
+        <p class="mb-3">{{ snippet.description }}</p>
+        {% endif %}
+        
+        <!-- Отображение файлов -->
+        {% if snippet.files %}
+        <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">📁 Файлы ({{ snippet.files|length }})</h6>
+                <a href="{{ url_for('download_all_public_files', snippet_id=snippet.id) }}" 
+                   class="btn btn-outline-primary btn-sm">
+                    📦 Скачать все файлы (ZIP)
+                </a>
+            </div>
+            
+            <div style="display: flex; gap: 8px; border-bottom: 1px solid #3a3a3a; margin-bottom: 12px; overflow-x: auto;">
+                {% for file in snippet.files %}
+                <button type="button" class="file-tab-btn" data-file-id="{{ file.id }}" 
+                        onclick="switchFile({{ file.id }})" 
+                        style="padding: 8px 12px; border: none; background: none; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;"
+                        id="tab-{{ file.id }}">
+                    {% if file.file_type == 'uploaded' %}📁{% else %}📄{% endif %} {{ file.filename }}
+                </button>
+                {% endfor %}
+            </div>
+            
+            {% for file in snippet.files %}
+            <div class="file-content" id="file-{{ file.id }}" style="display: {% if loop.first %}block{% else %}none{% endif %};">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <strong>{{ file.filename }}</strong>
+                        {% if file.language %}
+                        <span class="badge bg-secondary">{{ file.language }}</span>
+                        {% endif %}
+                        {% if file.file_type == 'uploaded' %}
+                        <span class="badge bg-info">Загружен</span>
+                        {% endif %}
+                    </div>
+                    <a href="{{ url_for('download_public_file', snippet_id=snippet.id, file_id=file.id) }}" 
+                       class="btn btn-outline-secondary btn-sm">
+                        ⬇️ Скачать
+                    </a>
+                </div>
+                <pre class="mb-0"><code>{{ file.content|e }}</code></pre>
+            </div>
+            {% endfor %}
+        </div>
+        {% elif snippet.code %}
+        <pre class="mb-0"><code>{{ snippet.code|e }}</code></pre>
+        {% endif %}
+        
+        <!-- Отображение ссылок на проекты -->
+        {% if snippet.links %}
+        <div class="mb-3">
+            <h6>🔗 Связанные проекты:</h6>
+            {% for link in snippet.links %}
+            <div class="mb-2 p-2 border rounded" style="background-color: var(--bg-card);">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <strong>
+                        {% if link.link_type == 'github' %}🐙
+                        {% elif link.link_type == 'gitlab' %}🦊
+                        {% elif link.link_type == 'codepen' %}✏️
+                        {% elif link.link_type == 'jsfiddle' %}🎻
+                        {% elif link.link_type == 'codesandbox' %}📦
+                        {% elif link.link_type == 'replit' %}🔄
+                        {% elif link.link_type == 'glitch' %}✨
+                        {% else %}🔗
+                        {% endif %}
+                        {{ link.title }}
+                    </strong>
+                    <span class="badge bg-secondary">{{ link.link_type }}</span>
+                </div>
+                <div class="mb-1">
+                    <a href="{{ link.url }}" target="_blank" class="text-info">{{ link.url }}</a>
+                </div>
+                {% if link.description %}
+                <small class="text-secondary">{{ link.description }}</small>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        <div class="mt-3 d-flex align-items-center gap-3">
+            {% if current_user.is_authenticated and snippet.status == 'approved' %}
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-success btn-sm vote-btn" data-url="{{ url_for('vote_snippet', id=snippet.id) }}" data-is-like="true" data-target="snippet-{{ snippet.id }}">
+                    &uarr; <span class="likes">{{ snippet.likes_count }}</span>
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm vote-btn" data-url="{{ url_for('vote_snippet', id=snippet.id) }}" data-is-like="false" data-target="snippet-{{ snippet.id }}">
+                    &darr; <span class="dislikes">{{ snippet.dislikes_count }}</span>
+                </button>
+            </div>
+            <form method="post" action="{{ url_for('report_snippet', id=snippet.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <select name="reason" class="form-select form-select-sm d-inline-block w-auto">
+                    <option value="spam">Спам</option>
+                    <option value="inappropriate">Неуместный контент</option>
+                    <option value="dangerous">Опасный контент</option>
+                    <option value="other">Другое</option>
+                </select>
+                <button type="submit" class="btn btn-outline-warning btn-sm">Пожаловаться</button>
+            </form>
+            {% else %}
+            <span>&uarr; {{ snippet.likes_count }} &darr; {{ snippet.dislikes_count }}</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div id="snippet-{{ snippet.id }}" class="d-none"></div>
+
+<h4>Комментарии</h4>
+{% if current_user.is_authenticated and snippet.status == 'approved' %}
+<form method="post" action="{{ url_for('add_comment', id=snippet.id) }}" class="mb-4" id="comment-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="parent_id" id="parent_id" value="">
+    <div class="mb-2">
+        <textarea name="content" class="form-control" rows="3" placeholder="Добавить комментарий..." required id="comment-content"></textarea>
+        <small id="reply-to" class="text-secondary d-none">Replying to...</small>
+    </div>
+    <button type="submit" class="btn btn-primary">Отправить</button>
+</form>
+{% endif %}
+
+{% macro render_comment(comment) %}
+<div class="mb-3 {% if comment.parent_id %}comment-reply{% endif %}" id="comment-{{ comment.id }}" style="margin-left: {{ comment.level * 2 }}rem;">
+    <div class="card">
+        <div class="card-body py-2">
+            {% if comment.is_deleted %}
+            <p class="text-muted mb-0 fst-italic">
+                {% if comment.content == "[Комментарий удален автором]" %}
+                    [Комментарий удален автором]
+                {% else %}
+                    [Комментарий удалён модерацией]
+                {% endif %}
+            </p>
+            {% elif comment.moderation_status == 'pending' %}
+            <p class="text-warning mb-0 fst-italic">[Комментарий на модерации из-за жалоб]</p>
+            {% elif comment.moderation_status == 'rejected' %}
+            <p class="text-muted mb-0 fst-italic">[Комментарий скрыт модерацией: {{ comment.moderation_reason }}]</p>
+            {% else %}
+            <p class="mb-1">{{ comment.content }}</p>
+            <div class="d-flex align-items-center gap-2 small">
+                <a href="{{ url_for('profile', username=comment.author.username) }}" class="text-info">{{ comment.author.username }}</a>
+                &middot; {{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}
+                {% if current_user.is_authenticated and not comment.is_deleted %}
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-success btn-sm vote-comment-btn" data-url="{{ url_for('vote_comment', id=comment.id) }}" data-is-like="true" data-target="comment-{{ comment.id }}">
+                        &uarr; <span class="likes">{{ comment.likes_count }}</span>
+                    </button>
+                    <button type="button" class="btn btn-outline-danger btn-sm vote-comment-btn" data-url="{{ url_for('vote_comment', id=comment.id) }}" data-is-like="false" data-target="comment-{{ comment.id }}">
+                        &darr; <span class="dislikes">{{ comment.dislikes_count }}</span>
+                    </button>
+                </div>
+                {% if comment.author_id == current_user.id %}
+                <a href="{{ url_for('edit_comment', id=comment.id) }}" class="text-secondary">Изменить</a>
+                <form method="post" action="{{ url_for('delete_comment', id=comment.id) }}" class="d-inline" onsubmit="return confirm('Удалить этот комментарий?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-link btn-sm text-danger p-0">Удалить</button>
+                </form>
+                {% endif %}
+                <form method="post" action="{{ url_for('report_comment', id=comment.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-link btn-sm text-warning p-0">Пожаловаться</button>
+                </form>
+                <button type="button" class="btn btn-link btn-sm text-info p-0 reply-btn" data-parent-id="{{ comment.id }}">Ответить</button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% for reply in comment.replies %}
+    {{ render_comment(reply) }}
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{% for comment in comments %}
+{{ render_comment(comment) }}
+{% endfor %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Переключение между файлами
+function switchFile(fileId) {
+    // Скрываем все файлы
+    document.querySelectorAll('.file-content').forEach(el => {
+        el.style.display = 'none';
+    });
+    
+    // Убираем активный стиль со всех кнопок
+    document.querySelectorAll('.file-tab-btn').forEach(btn => {
+        btn.style.color = 'var(--text-secondary)';
+        btn.style.borderBottomColor = 'transparent';
+    });
+    
+    // Показываем выбранный файл
+    const fileEl = document.getElementById('file-' + fileId);
+    if (fileEl) {
+        fileEl.style.display = 'block';
+    }
+    
+    // Активируем кнопку
+    const tabBtn = document.getElementById('tab-' + fileId);
+    if (tabBtn) {
+        tabBtn.style.color = 'var(--text-primary)';
+        tabBtn.style.borderBottomColor = 'var(--accent)';
+    }
+}
+
+document.querySelectorAll('.reply-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.getElementById('parent_id').value = this.dataset.parentId;
+        document.getElementById('comment-content').focus();
+        document.getElementById('comment-form').scrollIntoView({ behavior: 'smooth' });
+    });
+});
+
+// Голосование за сниппеты
+document.querySelectorAll('.vote-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const url = this.dataset.url;
+        const isLike = this.dataset.isLike === 'true';
+        fetch(url, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-CSRFToken': '{{ csrf_token() }}' 
+            },
+            body: JSON.stringify({ is_like: isLike })
+        }).then(r => r.json()).then(data => {
+            const grp = this.closest('.btn-group');
+            if (grp) {
+                grp.querySelector('.likes').textContent = data.likes;
+                grp.querySelector('.dislikes').textContent = data.dislikes;
+            }
+        }).catch(error => {
+            console.error('Ошибка голосования за сниппет:', error);
+        });
+    });
+});
+
+// Голосование за комментарии
+document.querySelectorAll('.vote-comment-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const url = this.dataset.url;
+        const isLike = this.dataset.isLike === 'true';
+        
+        console.log('Голосование за комментарий:', { url, isLike });
+        
+        fetch(url, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ is_like: isLike })
+        })
+        .then(response => {
+            console.log('Ответ сервера:', response.status, response.statusText);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Данные от сервера:', data);
+            if (data.success !== false) {
+                // Находим группу кнопок для этого конкретного комментария
+                const btnGroup = this.closest('.btn-group');
+                if (btnGroup) {
+                    btnGroup.querySelector('.likes').textContent = data.likes;
+                    btnGroup.querySelector('.dislikes').textContent = data.dislikes;
+                    console.log('Счетчики обновлены:', data.likes, data.dislikes);
+                } else {
+                    console.error('Не найдена группа кнопок');
+                }
+            } else {
+                console.error('Ошибка от сервера:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка голосования за комментарий:', error);
+        });
+    });
+});
+</script>
+{% endblock %}
