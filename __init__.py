@@ -1331,6 +1331,25 @@ def admin_stats():
                          total_unique_views=total_unique_views,
                          user_views=user_views)
 
+BASE_URL = "http://127.0.0.1:5000"
+# --- Public API ---
+
+@app.route('/api/snippets')
+def api_snippets():
+    page = request.args.get('page', 1, type=int)
+    snippets = CodeSnippet.query.filter_by(status='approved') \
+        .order_by(CodeSnippet.created_at.desc()) \
+        .paginate(page=page, per_page=20, error_out=False)
+    return jsonify([{
+        'id': s.id,
+        'title': s.title,
+        'author': s.author.username,
+        'category': s.category.name,
+        'tags': [t.name for t in s.tags],
+        'views': s.views_count,
+        'likes': s.likes_count,
+        'created_at': s.created_at.isoformat(),
+    } for s in snippets.items])
 
 @app.route('/tag/<name>')
 def by_tag(name):
@@ -1343,7 +1362,7 @@ def by_tag(name):
     return render_template('by_tag.html', tag=tag, snippets=snippets)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with app.app_context():
         db.create_all()
         init_categories()

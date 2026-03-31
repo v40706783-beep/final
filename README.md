@@ -1,49 +1,164 @@
-# CodeHub - Educational Code Snippet Sharing Platform
+Открыть: http://127.0.0.1:5000
 
-A Flask-based forum for programmers to share educational code snippets, discuss them, and learn from each other.
+В проекте используются две стандартные роли — **админ** и **обычный пользователь**.
 
-## Features
+**Администратор:**
 
-- **Code Snippets**: Create, edit, delete snippets with title, description, code, category, and tags
-- **Moderation**: All new snippets require admin approval before becoming visible
-- **Categories**: Web, Python, JavaScript, Malware Analysis, Reverse Engineering, Exploits, Algorithms, Data Structures, Other
-- **Tags**: User-defined tags (max 10 per snippet)
-- **Comments**: Nested threaded comments with replies
-- **Voting**: Like/dislike on snippets and comments (changeable)
-- **Reports**: Report snippets (spam, inappropriate, dangerous) or comments; 15 reports auto-deletes comment
-- **Hot Page**: Top snippets by likes from the last 7 days
-- **Search & Filter**: By title, tags, category; sort by newest, most liked, most viewed
+- **Логин**: `admin`  
+- **Пароль**: `123`
 
-## Setup
+**Обычный пользователь:**
 
-```bash
-pip install -r requirements.txt
-python run.py
+- **Логин**: `user`  
+- **Пароль**: `123`
+
+# CodeHub — Платформа для обмена сниппетами
+
+Flask-приложение для публикации и обсуждения учебных сниппетов кода по теме вредоносных ПО.
+
+## Возможности
+
+- Создание сниппетов с несколькими файлами (до 20), ссылками на проекты, тегами и категориями
+- Модерация: новые и отредактированные сниппеты проходят проверку перед публикацией
+- Повторная отправка на модерацию после отклонения с комментарием к исправлениям
+- Комментарии с вложенностью, голосованием и жалобами
+- Лайки/дизлайки на сниппетах и комментариях
+- Уникальные просмотры (по пользователю или IP)
+- Страница горячих сниппетов — топ по лайкам за последние 7 дней
+- Поиск и фильтрация по названию, категории, тегам; сортировка по дате, лайкам, просмотрам
+- Скачивание файлов сниппета по отдельности или ZIP-архивом
+- Подсветка синтаксиса через highlight.js
+- Публичный REST API для чтения данных
+
+Данные хранятся в базе **SQLite** (`main.db`) через ORM **SQLAlchemy**.
+
+
+- **Язык**: Python 3 (проект проверен на Python 3.13).
+- **Веб‑фреймворк**: `Flask`
+  - роутинг, шаблоны (`Jinja2`), флеш‑сообщения.
+- **Аутентификация**: `flask_login`
+  - сессии, объект `current_user`, декоратор `user_loader`.
+- **ORM и БД**: `flask_sqlalchemy` + `SQLAlchemy`
+  - база `sqlite:///main.db` (файл в папке `instance/`).
+- **Безопасность паролей**: `werkzeug.security`
+  - `generate_password_hash`, `check_password_hash`.
+- **HTTP‑клиент для примера API**: `requests` (скрипт `api_example.py`).
+- **Шаблоны и статика**:
+  - HTML‑шаблоны в `templates/`
+  - статика (картинки и т.п.) в `static/`
+
+Все зависимости перечислены в `requirements.txt`
+
+## Структура проекта
+
+```
+__init__.py        — основное приложение, модели, роуты
+run.py             — точка входа
+templates/         — HTML-шаблоны
+static/            — статические файлы
+instance/main.db   — база данных SQLite
 ```
 
-Open http://127.0.0.1:5000
+### Инструкция для запуска на windows (с виртуальным окружением)
 
-## Create Admin User
+#### 1. Клонирование / копирование проекта
 
-Run in Python shell:
+Если проект уже есть на рабочем столе, этот шаг можно пропустить.  
+Если используете GitHub:
+
+```powershell
+git clone https://github.com/ivan-artemev24/Python-1-Artemev
+cd Python-1-Artemev
+```
+
+#### 2. Создание и активация виртуального окружения
+
+```powershell
+
+# создать виртуальное окружение (папка venv появится в корне проекта)
+python -m venv venv
+
+# активировать окружение
+.\venv\Scripts\Activate.ps1
+```
+
+При успешной активации в начале строки PowerShell появится префикс `(venv)`.
+
+#### 3. Установка зависимостей
+
+```powershell
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+#### 4. Запуск приложения
+
+Запуск основного Flask‑приложения:
+
+```powershell
+python __init__.py
+```
+
+По умолчанию сервер стартует на:
+
+- `http://127.0.0.1:5000/` — веб‑интерфейс
+- `http://127.0.0.1:5000/api/...` — REST API
+
+#### 5. Остановка приложения
+
+В окне PowerShell нажмите `Ctrl + C`.
+
+---
+
+### REST API (краткое описание)
+
+API подключено в `__init__.py` через функцию `init_api(app, db, Article, User)` из `api.py`.  
+Базовый префикс: `/api`.
+
+Основные эндпоинты:
+
+Публичный REST API (чтение):
+
+GET /api/snippets — список одобренных сниппетов, ?page=2 для пагинации
+GET /api/snippets/<id> — один сниппет с описанием, файлами и ссылками
+
+
+### Работа с базой данных
+
+- Файл базы: `instance/main.db`.
+- При первом запуске (или если файла нет) таблицы создаются автоматически командой `db.create_all()`.
+- Модели `Article` и `User` описаны в `__init__.py`.
+- Для полного сброса данных можно удалить файл `instance/main.db` (при следующем запуске он будет создан заново с пустыми таблицами).
+## Создание администратора
 
 ```python
 from __init__ import app, db, User
 from werkzeug.security import generate_password_hash
 
 with app.app_context():
-    admin = User(username='admin', password=generate_password_hash('admin123'), admin=True)
+    admin = User(username='admin', password=generate_password_hash('yourpassword'), admin=True)
     db.session.add(admin)
     db.session.commit()
 ```
 
-## Tech Stack
+## REST API
 
-- Python 3.x, Flask, Flask-SQLAlchemy, Flask-Login, Flask-WTF
+| Метод | URL | Описание |
+|---|---|---|
+| GET | `/api/snippets` | Список одобренных сниппетов (пагинация: `?page=2`) |
+| GET | `/api/snippets/<id>` | Один сниппет с файлами и ссылками |
+
+## Стек
+
+- Python 3, Flask, Flask-SQLAlchemy, Flask-Login, Flask-WTF
 - SQLite
-- Bootstrap 5 (dark theme)
-- Jinja2 templates
+- Bootstrap 5, highlight.js
+- Jinja2
 
-## Disclaimer
 
-All code samples are for educational purposes only. Always test in isolated environments.
+## Установка
+
+```bash
+pip install -r requirements.txt
+python run.py
+```
