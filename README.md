@@ -1,6 +1,6 @@
 # CodeHub — платформа для обмена сниппетами
-https://docs.google.com/presentation/d/12TRpFxFd9AUcaeNl3srbBxSSf9XHsYgL6KCrwgFsEww/edit?slide=id.p1#slide=id.p1 ccылка на перзентацию
-https://vlad2233.pythonanywhere.com ссылка на сайт
+# https://docs.google.com/presentation/d/12TRpFxFd9AUcaeNl3srbBxSSf9XHsYgL6KCrwgFsEww/edit?slide=id.p1#slide=id.p1 ccылка на перзентацию
+# https://vlad2233.pythonanywhere.com ссылка на сайт
 Flask-приложение для публикации и обсуждения учебных сниппетов кода (в т.ч. по теме вредоносного ПО и анализа).
 
 ## Возможности
