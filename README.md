@@ -68,7 +68,7 @@ New-Item -ItemType Directory -Force -Path static\avatars
 python run.py
 ```
 
-Откройте в браузере: **http://127.0.0.1:5000**
+Откройте в браузере: **vlad2233.pythonanywhere.com**
 
 Остановка сервера: `Ctrl+C` в том же окне терминала.
 
@@ -86,7 +86,7 @@ mkdir -p static/avatars
 python run.py
 ```
 
-Сайт: **http://127.0.0.1:5000**
+Сайт: **vlad2233.pythonanywhere.com**
 
 ---
 
@@ -102,8 +102,8 @@ python __init__.py
 
 ## Первый вход
 
-1. Зарегистрируйтесь: **http://127.0.0.1:5000/register**
-2. Войдите под созданным логином: **http://127.0.0.1:5000/login**
+1. Зарегистрируйтесь: **vlad2233.pythonanywhere.com/register**
+2. Войдите под созданным логином: **vlad2233.pythonanywhere.com/login**
 
 Готовых учётных записей в проекте нет — их нужно создать при регистрации.
 
