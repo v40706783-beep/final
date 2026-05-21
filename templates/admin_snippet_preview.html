@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+
+{% block title %}Предпросмотр сниппета - {{ snippet.title }} - CodeHub{% endblock %}
+
+{% block extra_css %}
+<style>
+.file-tabs-container {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid #3a3a3a;
+    margin-bottom: 12px;
+    overflow-x: auto;
+}
+
+.file-tab-btn {
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.file-tab-btn:hover {
+    color: var(--text-primary);
+}
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Предпросмотр сниппета для модерации</h1>
+        <a href="{{ url_for('moderate') }}" class="btn btn-outline-secondary">← Назад к модерации</a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3>{{ snippet.title }}</h3>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+                <span class="badge bg-secondary">{{ snippet.category.name }}</span>
+                {% for tag in snippet.tags %}
+                <span class="badge bg-dark text-info">{{ tag.name }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="card-body">
+            <p class="text-secondary">
+                Автор: <strong>{{ snippet.author.username }}</strong> 
+                &middot; {{ snippet.created_at.strftime('%Y-%m-%d %H:%M') }}
+                &middot; Статус: 
+                {% if snippet.status == 'pending' %}
+                    <span class="badge bg-warning">На модерации</span>
+                {% elif snippet.status == 'approved' %}
+                    <span class="badge bg-success">Одобрен</span>
+                {% elif snippet.status == 'rejected' %}
+                    <span class="badge bg-danger">Отклонен</span>
+                {% endif %}
+            </p>
+            
+            {% if snippet.description %}
+            <div class="mb-3">
+                <h5>Описание:</h5>
+                <p>{{ snippet.description }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Файлы сниппета -->
+            {% if snippet.files %}
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Файлы ({{ snippet.files|length }}):</h5>
+                    <div class="btn-group">
+                        <a href="{{ url_for('download_all_public_files', snippet_id=snippet.id) }}" 
+                           class="btn btn-outline-primary btn-sm">
+                            📦 Скачать все файлы (ZIP)
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Вкладки файлов -->
+                <div class="file-tabs-container">
+                    {% for file in snippet.files %}
+                    <button type="button" class="file-tab-btn" data-file-id="{{ file.id }}" 
+                            onclick="switchFile({{ file.id }})" 
+                            id="tab-{{ file.id }}">
+                        📄 {{ file.filename }}
+                        {% if file.language %}
+                        <span class="badge bg-secondary ms-1">{{ file.language }}</span>
+                        {% endif %}
+                    </button>
+                    {% endfor %}
+                </div>
+                
+                <!-- Содержимое файлов -->
+                {% for file in snippet.files %}
+                <div class="file-content" id="file-{{ file.id }}" style="display: {% if loop.first %}block{% else %}none{% endif %};">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">{{ file.filename }}</h6>
+                        <a href="{{ url_for('download_public_file', snippet_id=snippet.id, file_id=file.id) }}" 
+                           class="btn btn-outline-secondary btn-sm">
+                            ⬇️ Скачать
+                        </a>
+                    </div>
+                    <pre style="background-color: #1a1a1a; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 500px;"><code>{{ file.content|e }}</code></pre>
+                </div>
+                {% endfor %}
+            </div>
+            {% elif snippet.code %}
+            <!-- Старый формат с одним блоком кода -->
+            <div class="mb-3">
+                <h5>Код:</h5>
+                <pre style="background-color: #1a1a1a; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 500px;"><code>{{ snippet.code|e }}</code></pre>
+            </div>
+            {% endif %}
+
+            <!-- Комментарий автора к повторной отправке -->
+            {% if snippet.resubmit_comment %}
+            <div class="mb-3 p-3 rounded" style="border-left: 3px solid #f0ad4e; background-color: rgba(240,173,78,0.1);">
+                <strong style="color: #f0ad4e;">💬 Комментарий автора к исправлениям:</strong>
+                <p class="mb-0 mt-1" style="white-space: pre-wrap;">{{ snippet.resubmit_comment }}</p>
+            </div>
+            {% if snippet.rejection_reason %}
+            <div class="mb-3 p-3 rounded" style="border-left: 3px solid #6c757d; background-color: rgba(108,117,125,0.1);">
+                <strong class="text-secondary">📋 Предыдущая причина отклонения:</strong>
+                <p class="mb-0 mt-1 text-secondary small" style="white-space: pre-wrap;">{{ snippet.rejection_reason }}</p>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            <!-- Действия модерации -->
+            {% if snippet.status == 'pending' %}
+            <div class="mt-4 p-3 border rounded">
+                <h6>Действия модерации:</h6>
+                <form method="post" action="{{ url_for('moderate') }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action_type" value="snippet">
+                    <input type="hidden" name="item_id" value="{{ snippet.id }}">
+                    <input type="hidden" name="action" value="approve">
+                    <button type="submit" class="btn btn-success me-2">Одобрить</button>
+                </form>
+                
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                    Отклонить
+                </button>
+                
+                <!-- Модальное окно для отклонения -->
+                <div class="modal fade" id="rejectModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form method="post" action="{{ url_for('moderate') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="action_type" value="snippet">
+                                <input type="hidden" name="item_id" value="{{ snippet.id }}">
+                                <input type="hidden" name="action" value="reject">
+                                
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Отклонить сниппет</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label for="rejection_reason" class="form-label">Причина отклонения:</label>
+                                        <textarea class="form-control" id="rejection_reason" name="rejection_reason" rows="3" required></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                    <button type="submit" class="btn btn-danger">Отклонить</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Переключение между файлами (та же функция, что и в snippet.html)
+function switchFile(fileId) {
+    // Скрываем все файлы
+    document.querySelectorAll('.file-content').forEach(el => {
+        el.style.display = 'none';
+    });
+    
+    // Убираем активный стиль со всех кнопок
+    document.querySelectorAll('.file-tab-btn').forEach(btn => {
+        btn.style.color = 'var(--text-secondary)';
+        btn.style.borderBottomColor = 'transparent';
+    });
+    
+    // Показываем выбранный файл
+    const fileEl = document.getElementById('file-' + fileId);
+    if (fileEl) {
+        fileEl.style.display = 'block';
+    }
+    
+    // Активируем кнопку
+    const tabBtn = document.getElementById('tab-' + fileId);
+    if (tabBtn) {
+        tabBtn.style.color = 'var(--text-primary)';
+        tabBtn.style.borderBottomColor = 'var(--accent)';
+    }
+}
+</script>
+{% endblock %}

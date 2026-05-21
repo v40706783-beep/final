@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}CodeHub - Home{% endblock %}
+
+{% block main %}
+<h1 class="mb-4">Сниппеты кода</h1>
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-4">
+        <input type="text" name="q" class="form-control" placeholder="Поиск по названию или описанию" value="{{ search }}">
+    </div>
+    <div class="col-md-3">
+        <select name="category" class="form-select">
+            <option value="">Все категории</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if request.args.get('category')|int == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select name="sort" class="form-select">
+            <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Новые</option>
+            <option value="liked" {% if sort == 'liked' %}selected{% endif %}>По лайкам</option>
+            <option value="viewed" {% if sort == 'viewed' %}selected{% endif %}>По просмотрам</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Применить</button>
+    </div>
+</form>
+
+<!-- Объяснение поиска -->
+<div class="alert alert-info mb-4" role="alert">
+    <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Как работает поиск:</h6>
+    <ul class="mb-0 small">
+        <li><strong>Текстовый поиск:</strong> ищет совпадения в названии и описании сниппетов</li>
+        <li><strong>Фильтр по категории:</strong> показывает только сниппеты выбранной категории</li>
+        <li><strong>Сортировка:</strong> "Новые" - по дате создания, "По лайкам" - по популярности, "По просмотрам" - по количеству уникальных просмотров</li>
+        <li><strong>Теги:</strong> кликните на тег под сниппетом для поиска похожих</li>
+    </ul>
+</div>
+
+{% for snippet in snippets.items %}
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">
+            <a href="{{ url_for('snippet', id=snippet.id) }}" class="text-decoration-none text-white">{{ snippet.title }}</a>
+        </h5>
+        <p class="card-text text-secondary small">{{ snippet.description[:200] }}{% if snippet.description|length > 200 %}...{% endif %}</p>
+        <div class="d-flex flex-wrap gap-2 align-items-center small">
+            <span class="badge bg-secondary">{{ snippet.category.name }}</span>
+            {% for tag in snippet.tags[:5] %}
+            <a href="{{ url_for('by_tag', name=tag.name) }}" class="badge bg-dark text-info">{{ tag.name }}</a>
+            {% endfor %}
+            <span class="text-secondary ms-auto">
+                автор: <a href="{{ url_for('profile', username=snippet.author.username) }}" class="text-info">{{ snippet.author.username }}</a>
+                &middot; {{ snippet.created_at.strftime('%Y-%m-%d') }}
+            </span>
+            <span class="text-secondary">
+                &uarr; {{ snippet.likes_count }} &darr; {{ snippet.dislikes_count }}
+                &middot; {{ snippet.views_count }} просмотров
+            </span>
+        </div>
+    </div>
+</div>
+{% else %}
+<p class="text-secondary">Сниппетов пока нет. Станьте первым — <a href="{{ url_for('create_snippet') }}">создайте сниппет</a>!</p>
+{% endfor %}
+
+{% if snippets.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if snippets.has_prev %}
+        <li class="page-item">
+            <a class="page-link bg-dark border-secondary text-white" href="{{ url_for('index', page=snippets.prev_num, q=search, category=request.args.get('category'), sort=sort) }}">Назад</a>
+        </li>
+        {% endif %}
+        {% for p in snippets.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+            <li class="page-item {% if p == snippets.page %}active{% endif %}">
+                <a class="page-link bg-dark border-secondary text-white" href="{{ url_for('index', page=p, q=search, category=request.args.get('category'), sort=sort) }}">{{ p }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+        {% if snippets.has_next %}
+        <li class="page-item">
+            <a class="page-link bg-dark border-secondary text-white" href="{{ url_for('index', page=snippets.next_num, q=search, category=request.args.get('category'), sort=sort) }}">Вперёд</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

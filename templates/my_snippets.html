@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}My Snippets - CodeHub{% endblock %}
+
+{% block main %}
+<h1 class="mb-4">Мои сниппеты</h1>
+
+{% for snippet in snippets %}
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <h5 class="card-title mb-0">
+                <a href="{{ url_for('snippet', id=snippet.id) }}" class="text-decoration-none text-white">{{ snippet.title }}</a>
+                <span class="badge {% if snippet.status == 'approved' %}bg-success{% elif snippet.status == 'rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %} ms-2">
+                    {% if snippet.status == 'approved' %}✓ Одобрен{% elif snippet.status == 'rejected' %}✗ Отклонён{% else %}⏳ На модерации{% endif %}
+                </span>
+            </h5>
+            <div>
+                {% if snippet.status == 'rejected' %}
+                <a href="{{ url_for('edit_snippet', id=snippet.id) }}" class="btn btn-warning btn-sm">
+                    ✏️ Исправить
+                </a>
+                {% else %}
+                <a href="{{ url_for('edit_snippet', id=snippet.id) }}" class="btn btn-outline-secondary btn-sm">Редактировать</a>
+                {% endif %}
+                <form method="post" action="{{ url_for('delete_snippet', id=snippet.id) }}" class="d-inline" onsubmit="return confirm('Удалить этот сниппет?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Удалить</button>
+                </form>
+            </div>
+        </div>
+        {% if snippet.status == 'rejected' and snippet.rejection_reason %}
+        <div class="alert alert-danger mt-2 mb-2 small" style="padding: 8px;">
+            <strong>Причина отклонения:</strong> {{ snippet.rejection_reason[:200] }}{% if snippet.rejection_reason|length > 200 %}...{% endif %}
+        </div>
+        {% endif %}
+        <p class="card-text text-secondary small mt-1">{{ snippet.description[:150] }}{% if snippet.description|length > 150 %}...{% endif %}</p>
+        <div class="d-flex gap-2 small">
+            <span class="badge bg-secondary">{{ snippet.category.name }}</span>
+            <span class="text-secondary">{{ snippet.created_at.strftime('%Y-%m-%d') }} &middot; &uarr; {{ snippet.likes_count }}</span>
+        </div>
+    </div>
+</div>
+{% else %}
+<p class="text-secondary">Вы ещё не создали ни одного сниппета. <a href="{{ url_for('create_snippet') }}">Создайте первый</a>!</p>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Статистика - CodeHub{% endblock %}
+
+{% block main %}
+<h1 class="mb-4">Статистика просмотров</h1>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Всего сниппетов</h5>
+                <h2 class="text-primary">{{ total_snippets }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Всего просмотров</h5>
+                <h2 class="text-success">{{ total_views }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Уникальных просмотров</h5>
+                <h2 class="text-info">{{ total_unique_views }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Средний CTR</h5>
+                <h2 class="text-warning">
+                    {% if total_snippets > 0 %}
+                        {{ "%.1f"|format(total_views / total_snippets) }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Топ сниппетов по просмотрам</h5>
+            </div>
+            <div class="card-body">
+                {% for snippet in top_snippets %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <a href="{{ url_for('snippet', id=snippet.id) }}" class="text-decoration-none">
+                            {{ snippet.title[:50] }}{% if snippet.title|length > 50 %}...{% endif %}
+                        </a>
+                        <small class="text-muted d-block">{{ snippet.author.username }}</small>
+                    </div>
+                    <span class="badge bg-primary">{{ snippet.views_count }} просмотров</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Активные пользователи</h5>
+            </div>
+            <div class="card-body">
+                {% for username, view_count in user_views %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <a href="{{ url_for('profile', username=username) }}" class="text-decoration-none">
+                            {{ username }}
+                        </a>
+                    </div>
+                    <span class="badge bg-success">{{ view_count }} просмотров</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

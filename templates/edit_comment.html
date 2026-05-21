@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Comment - CodeHub{% endblock %}
+
+{% block main %}
+<h2 class="mb-4">Редактировать комментарий</h2>
+
+<form method="post" action="{{ url_for('edit_comment', id=comment.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="mb-3">
+        <textarea class="form-control" name="content" rows="4" required>{{ comment.content }}</textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+    <a href="{{ url_for('snippet', id=comment.snippet_id) }}" class="btn btn-outline-secondary">Отмена</a>
+</form>
+{% endblock %}

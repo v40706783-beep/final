@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Редактировать профиль - CodeHub{% endblock %}
+
+{% block main %}
+<div class="container" style="max-width: 600px;">
+    <h1 class="mb-4">Редактировать профиль</h1>
+
+    <form method="post" action="{{ url_for('edit_profile') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- Аватарка -->
+        <div class="form-section mb-4">
+            <label class="form-label form-section-title">Аватарка</label>
+            <div class="d-flex align-items-center gap-4 mb-3">
+                {% if current_user.avatar_url %}
+                <img src="{{ current_user.avatar_url }}" alt="Аватар" class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover;">
+                {% else %}
+                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                    <span style="font-size: 24px;">{{ current_user.username[0]|upper }}</span>
+                </div>
+                {% endif %}
+                <div>
+                    <input type="file" class="form-control" id="avatar" name="avatar" accept="image/jpeg,image/png,image/gif">
+                    <div class="help-text">JPG, PNG или GIF, максимум 2MB</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Описание -->
+        <div class="form-section mb-4">
+            <label for="bio" class="form-label form-section-title">О себе</label>
+            <textarea class="form-control" id="bio" name="bio" rows="4" placeholder="Расскажите о себе, своих интересах в программировании...">{{ current_user.bio or '' }}</textarea>
+            <div class="help-text">Максимум 500 символов</div>
+        </div>
+
+        <!-- Кнопки -->
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success">Сохранить</button>
+            <a href="{{ url_for('profile', username=current_user.username) }}" class="btn btn-outline-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
